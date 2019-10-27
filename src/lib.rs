@@ -1,12 +1,8 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+#![deny(missing_docs)]
 
-    #[test]
-    fn maybe_works() {
-        assert_eq!(1 + 1, 2);
-    }
-}
+//! Provides common Tic Tac Toe logic and artificial intelligence algorithms.
+
+
+// Public items provided by this library.
+mod board;
+pub use board::Position;
