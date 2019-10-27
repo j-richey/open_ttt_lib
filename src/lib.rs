@@ -5,4 +5,6 @@
 
 // Public items provided by this library.
 mod board;
+pub use board::Square;
 pub use board::Position;
+pub use board::Owner;
