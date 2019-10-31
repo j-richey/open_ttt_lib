@@ -22,6 +22,22 @@ impl Board {
     }
 
     /// Returns `true` if the board contains the given position.
+    ///
+    /// This function useful to check positions before passing them to other
+    /// functions that panic when passed positions outside the board such as 
+    /// `get()` and `owner()`. 
+    ///
+    /// Note that positions are zero based.
+    ///
+    /// # Examples
+    /// ```
+    /// let board = Board::new(Size { rows: 3, columns: 3 });
+    /// 
+    /// assert_eq!(true, board.contains(Position { row: 2, column: 2 }));
+    /// // Since the positions are zero indexed, the board does not
+    /// // contain the following position.
+    /// assert_eq!(false, board.contains(Position { row: 3, column: 3 }));
+    /// ```
     pub fn contains(&self, position: Position) -> bool {
         panic!("This function is not implemented");
     }
@@ -208,65 +224,25 @@ mod tests {
     }
 
     #[test]
-    fn size_when_same_should_compare_equal() {
-        let rows = 0;
-        let columns = 0;
-        let a = Size {
-            rows,
-            columns,
-        };
-        let b = Size {
-            rows,
-            columns,
-        };
+    fn board_contains_when_includes_position_should_be_true() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_in_board = Position { row: 0, column: 0 };
 
-        assert_eq!(a, b);
+        let actual = board.contains(position_in_board);
+
+        assert_eq!(true, actual);
     }
 
     #[test]
-    fn size_from_tuple_first_item_should_be_rows() {
-        // A nonzero value is used so we test non default behavior.
-        let expected_rows = 1;
+    fn board_contains_when_excludes_position_should_be_false() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_not_in_board = Position { row: 1, column: 0 };
 
-        let actual = Size::from((expected_rows, 0));
+        let actual = board.contains(position_not_in_board);
 
-        assert_eq!(expected_rows, actual.rows);
+        assert_eq!(false, actual);
     }
 
-    #[test]
-    fn position_from_tuple_second_item_should_be_columns() {
-        // A nonzero value is used so we test non default behavior.
-        let expected_columns = 1;
-
-        let actual = Size::from((0, expected_columns));
-
-        assert_eq!(expected_columns, actual.columns);
-    }
-
-    #[test]
-    fn size_when_copied_should_compare_equal() {
-        let expected = Size {
-            rows: 1,
-            columns: 2,
-        };
-
-        // Perform a copy.
-        let actual = expected;
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn size_when_cloned_should_compare_equal() {
-        let expected = Size {
-            rows: 1,
-            columns: 2,
-        };
-
-        let actual = expected.clone();
-
-        assert_eq!(expected, actual);
-    }
 
     #[test]
     fn square_when_same_owner_and_position_should_equal() {
@@ -338,6 +314,69 @@ mod tests {
 
         assert_eq!(expected, actual);
     }
+
+
+    #[test]
+    fn size_when_same_should_compare_equal() {
+        let rows = 0;
+        let columns = 0;
+        let a = Size {
+            rows,
+            columns,
+        };
+        let b = Size {
+            rows,
+            columns,
+        };
+
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn size_from_tuple_first_item_should_be_rows() {
+        // A nonzero value is used so we test non default behavior.
+        let expected_rows = 1;
+
+        let actual = Size::from((expected_rows, 0));
+
+        assert_eq!(expected_rows, actual.rows);
+    }
+
+    #[test]
+    fn size_from_tuple_second_item_should_be_columns() {
+        // A nonzero value is used so we test non default behavior.
+        let expected_columns = 1;
+
+        let actual = Size::from((0, expected_columns));
+
+        assert_eq!(expected_columns, actual.columns);
+    }
+
+    #[test]
+    fn size_when_copied_should_compare_equal() {
+        let expected = Size {
+            rows: 1,
+            columns: 2,
+        };
+
+        // Perform a copy.
+        let actual = expected;
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn size_when_cloned_should_compare_equal() {
+        let expected = Size {
+            rows: 1,
+            columns: 2,
+        };
+
+        let actual = expected.clone();
+
+        assert_eq!(expected, actual);
+    }
+
 
     #[test]
     fn position_when_same_should_compare_equal() {
