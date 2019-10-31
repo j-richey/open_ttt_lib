@@ -165,16 +165,18 @@ pub enum Owner {
     None,
 }
 
+
 // This module contains the tests for the types in this file.
 // 
-// The test naming format is: <method>_should_<expected>_when_<condition>.
+// The test naming format is: 
+//   <method>_when_<scenario_being_tested>_should_<expected_behavior>
 // Also, try test exactly one item per test, e.g. one assert per test.
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn board_new_should_create_3x3_board_when_given_3x3_size() {
+    fn board_new_when_given_0x0_size_should_create_0x0_board() {
         let expected_size = Size::from((3, 3));
 
         let board = Board::new(expected_size);
@@ -185,21 +187,89 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn board_new_should_panic_when_given_0x3_size() {
-        let invalid_size = Size::from((0, 3));
+    fn board_new_when_given_negative_rows_size_should_panic() {
+        let invalid_size = Size {
+            rows: -1,
+            columns: 0,
+        };
+
         let _board = Board::new(invalid_size);
     }
 
     #[test]
     #[should_panic]
-    fn board_new_should_panic_when_given_3x0_size() {
-        let invalid_size = Size::from((3, 0));
+    fn board_new_when_given_negative_columns_size_should_panic() {
+        let invalid_size = Size {
+            rows: 0,
+            columns: -1,
+        };
 
         let _board = Board::new(invalid_size);
     }
 
     #[test]
-    fn square_are_equal() {
+    fn size_when_same_should_compare_equal() {
+        let rows = 0;
+        let columns = 0;
+        let a = Size {
+            rows,
+            columns,
+        };
+        let b = Size {
+            rows,
+            columns,
+        };
+
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn size_from_tuple_first_item_should_be_rows() {
+        // A nonzero value is used so we test non default behavior.
+        let expected_rows = 1;
+
+        let actual = Size::from((expected_rows, 0));
+
+        assert_eq!(expected_rows, actual.rows);
+    }
+
+    #[test]
+    fn position_from_tuple_second_item_should_be_columns() {
+        // A nonzero value is used so we test non default behavior.
+        let expected_columns = 1;
+
+        let actual = Size::from((0, expected_columns));
+
+        assert_eq!(expected_columns, actual.columns);
+    }
+
+    #[test]
+    fn size_when_copied_should_compare_equal() {
+        let expected = Size {
+            rows: 1,
+            columns: 2,
+        };
+
+        // Perform a copy.
+        let actual = expected;
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn size_when_cloned_should_compare_equal() {
+        let expected = Size {
+            rows: 1,
+            columns: 2,
+        };
+
+        let actual = expected.clone();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn square_when_same_owner_and_position_should_equal() {
         let owner = Owner::PlayerX;
         let position = Position::from((1, 2));
         let a = Square {
@@ -215,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn square_different_owner_not_equal() {
+    fn square_when_different_owner_should_not_equal() {
         let position = Position::from((1, 2));
         let a = Square {
             owner: Owner::PlayerX,
@@ -230,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    fn square_different_position_not_equal() {
+    fn square_when_different_position_should_not_equal() {
         let owner = Owner::PlayerX;
         let a = Square {
             owner,
@@ -245,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn square_can_copy() {
+    fn square_when_copied_should_compare_equal() {
         let expected = Square {
             owner: Owner::PlayerX,
             position: Position::from((1, 2)),
@@ -258,9 +328,21 @@ mod tests {
     }
 
     #[test]
-    fn position_are_equal() {
-        let row = 1;
-        let column = 2;
+    fn square_when_cloned_should_compare_equal() {
+        let expected = Square {
+            owner: Owner::PlayerX,
+            position: Position::from((1, 2)),
+        };
+
+        let actual = expected.clone();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn position_when_same_should_compare_equal() {
+        let row = 0;
+        let column = 0;
         let a = Position {
             row,
             column,
@@ -274,22 +356,27 @@ mod tests {
     }
 
     #[test]
-    fn position_from_tuple() {
-        let row = 1;
-        let column = 2;
-        let expected = Position {
-            row,
-            column,
-        };
-        let t = (row, column);
+    fn position_from_tuple_first_item_should_be_row() {
+        // A nonzero value is used so we test non default behavior.
+        let expected_row = 1;
 
-        let actual = Position::from(t);
+        let actual = Position::from((expected_row, 0));
 
-        assert_eq!(expected, actual);
+        assert_eq!(expected_row, actual.row);
     }
 
     #[test]
-    fn position_can_copy() {
+    fn position_from_tuple_second_item_should_be_column() {
+        // A nonzero value is used so we test non default behavior.
+        let expected_column = 1;
+
+        let actual = Position::from((0, expected_column));
+
+        assert_eq!(expected_column, actual.column);
+    }
+
+    #[test]
+    fn position_when_copied_should_compare_equal() {
         let expected = Position {
             row: 1,
             column: 2,
@@ -297,6 +384,18 @@ mod tests {
 
         // Perform a copy.
         let actual = expected;
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn position_when_cloned_should_compare_equal() {
+        let expected = Position {
+            row: 1,
+            column: 2,
+        };
+
+        let actual = expected.clone();
 
         assert_eq!(expected, actual);
     }
