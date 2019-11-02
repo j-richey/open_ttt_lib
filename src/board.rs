@@ -38,15 +38,9 @@ impl Board {
         panic!("This function is not implemented");
     }
 
-    /// Returns a reference to the square at the indicated position or `None` 
+    /// Returns a copy of the square at the indicated position or `None` 
     /// if the board does not contain the provided position.
-    pub fn get(&self, position: Position) -> Option<&Square> {
-        panic!("This function is not implemented");
-    }
-
-    /// Returns a mutable reference to the square at the indicated position or 
-    /// `None` if the board does not contain the provided position.
-    pub fn get_mut(&self, position: Position) -> Option<&mut Square> {
+    pub fn get(&self, position: Position) -> Option<Square> {
         panic!("This function is not implemented");
     }
 
@@ -55,7 +49,7 @@ impl Board {
     /// # Panics
     /// Panics if the board does not contain a square at the provided square's 
     /// position.
-    pub fn replace(&self, square: Square) {
+    pub fn set(&self, square: Square) {
         panic!("This function is not implemented");
     }
 
@@ -239,7 +233,7 @@ mod tests {
         let position = Position { row: 0, column: 0 };
         // Note that new board squares start with no owner.
         let square = Square {owner: Owner::None, position, };
-        let expected = Some(&square);
+        let expected = Some(square);
 
         let actual = board.get(position);
 
@@ -258,49 +252,25 @@ mod tests {
     }
 
     #[test]
-    fn board_get_mut_when_contains_position_should_be_some_square() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
-        let position = Position { row: 0, column: 0 };
-        // Note that new board squares start with no owner.
-        let mut square = Square {owner: Owner::None, position, };
-        let expected = Some(&mut square);
-
-        let actual = board.get_mut(position);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn board_get_mut_when_not_contains_position_should_be_none() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
-        let position_not_in_board = Position { row: 1, column: 0 };
-        let expected = None;
-
-        let actual = board.get_mut(position_not_in_board);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn board_replace_when_given_square_with_different_owner_should_change_square_owner() {
+    fn board_set_when_given_square_with_different_owner_should_change_square_owner() {
         let board = Board::new(Size { rows: 1, columns: 1 });
         let position = Position { row: 0, column: 0 };
         let expected = Square{ owner: Owner::PlayerX, position, };
 
-        board.replace(expected);
-        let actual = *board.get(position).unwrap();
+        board.set(expected);
+        let actual = board.get(position).unwrap();
 
         assert_eq!(expected, actual);
     }
 
     #[test]
     #[should_panic]
-    fn board_replace_when_given_square_outside_board_should_panic() {
+    fn board_set_when_given_square_outside_board_should_panic() {
         let board = Board::new(Size { rows: 1, columns: 1 });
         let position_outside_board = Position { row: 1, column: 0 };
         let square_outside_board = Square{ owner: Owner::PlayerX, position: position_outside_board, };
 
-        board.replace(square_outside_board);
+        board.set(square_outside_board);
     }
 
     #[test]
@@ -317,12 +287,13 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
+    #[allow(non_snake_case)]
     #[test]
     fn board_display_when_X_own_squares_should_contain_X_characters() {
         let board = Board::new(Size { rows: 1, columns: 1, });
         let position = Position { row: 0, column: 0 };
         let square = Square{ owner: Owner::PlayerX, position, };
-        board.replace(square);
+        board.set(square);
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
@@ -330,12 +301,13 @@ mod tests {
         assert!(textual_representation.contains("X"));
     }
 
+    #[allow(non_snake_case)]
     #[test]
     fn board_display_when_O_own_squares_should_contain_O_characters() {
         let board = Board::new(Size { rows: 1, columns: 1, });
         let position = Position { row: 0, column: 0 };
         let square = Square{ owner: Owner::PlayerO, position, };
-        board.replace(square);
+        board.set(square);
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
