@@ -3,7 +3,7 @@ use std::fmt;
 /// Represents the Tic Tac Toe board providing multiple ways to access individual squares.
 #[derive(Clone)]
 pub struct Board {
-
+    squares: Vec<Vec<Owner>>,
 }
 
 impl Board {
@@ -11,14 +11,40 @@ impl Board {
     /// Constructs a new board of the given size.
     ///
     /// # Panics
-    /// Panics if  either the number of rows or columns is less than zero.
+    /// The minimum board size is 1x1. Panics if either the number of rows or
+    /// columns is less than one.
     pub fn new(size: Size) -> Board {
-        panic!("This function is not implemented");
+        const MIN_BOARD_SIZE: Size = Size{ rows: 1, columns: 1 };
+
+        // Validate the provided board size.
+        if size.rows < MIN_BOARD_SIZE.rows || size.columns < MIN_BOARD_SIZE.columns {
+            panic!("Invalid board size of '{:?}' provided. The minium board size is '{:?}'",
+                size, MIN_BOARD_SIZE);
+        }
+
+        let mut squares: Vec<Vec<Owner>> = Vec::new();
+        for _ in 0..size.rows {
+            let mut row: Vec<Owner> = Vec::new();
+            for _ in 0..size.columns {
+                row.push(Owner::None);
+            }
+            squares.push(row);
+        }
+
+        Board { squares, }
     }
 
     /// Gets the size of the board.
     pub fn size(&self) -> Size {
-        panic!("This function is not implemented");
+        let rows = self.squares.len();
+
+        // The length of the first row happens to be the number of columns.
+        let columns = match self.squares.get(0) {
+            Some(row) => row.len(),
+            None => 0,
+        };
+
+        Size{ rows, columns }
     }
 
     /// Returns `true` if the board contains the given position.
@@ -27,60 +53,122 @@ impl Board {
     ///
     /// # Examples
     /// ```
-    /// let board = Board::new(Size { rows: 3, columns: 3 });
-    /// 
-    /// assert_eq!(true, board.contains(Position { row: 2, column: 2 }));
+    /// let board = open_ttt_lib::Board::new(open_ttt_lib::Size { rows: 3, columns: 3 });
+    ///
+    /// assert_eq!(true, board.contains(open_ttt_lib::Position { row: 2, column: 2 }));
     /// // Since the positions are zero indexed, the board does not
     /// // contain the following position.
-    /// assert_eq!(false, board.contains(Position { row: 3, column: 3 }));
+    /// assert_eq!(false, board.contains(open_ttt_lib::Position { row: 3, column: 3 }));
     /// ```
     pub fn contains(&self, position: Position) -> bool {
-        panic!("This function is not implemented");
+        let size = self.size();
+
+        position.row < size.rows && position.column < size.columns
     }
 
-    /// Returns a copy of the square at the indicated position or `None` 
+    /// Returns a copy of the square at the indicated position or `None`
     /// if the board does not contain the provided position.
     pub fn get(&self, position: Position) -> Option<Square> {
-        panic!("This function is not implemented");
+        if self.contains(position) {
+            let owner = self.squares[position.row][position.column];
+            Some(Square{ owner, position })
+        } else {
+            None
+        }
     }
 
     /// Replaces the square, denoted by its position, with the provided square.
     ///
     /// # Panics
-    /// Panics if the board does not contain a square at the provided square's 
+    /// Panics if the board does not contain a square at the provided square's
     /// position.
-    pub fn set(&self, square: Square) {
-        panic!("This function is not implemented");
+    pub fn set(&mut self, square: Square) {
+        if self.contains(square.position) {
+            self.squares[square.position.row][square.position.column] = square.owner;
+        } else {
+            panic!("The position of the provided square, {:?} is outside the boards size of {:?}.",
+                square.position, self.size());
+        }
     }
 
     /// Gets an iterator over all the squares in a `Board`.
     pub fn iter(&self) -> Iter {
-        panic!("This function is not implemented");
+        Iter {
+            board: &self,
+            position: Position{ row: 0, column: 0 },
+        }
+    }
+
+    // Helper function for displaying boards that writes the separators between rows.
+    fn write_row_separator(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for _ in 0..self.size().columns {
+            write!(f, "+---")?;
+        }
+        writeln!(f, "+")
+    }
+
+    // Helper function for displaying boards that writes the content of the row.
+    fn write_row_content(&self, f: &mut fmt::Formatter<'_>, row: &Vec<Owner>) -> fmt::Result {
+        for owner in row {
+            match owner {
+                Owner::PlayerX => write!(f, "| X "),
+                Owner::PlayerO => write!(f, "| O "),
+                Owner::None => write!(f, "|   "),
+            }?;
+        }
+        // Write the last vertical bar to close off the cell.
+        writeln!(f, "|")
     }
 }
 
 impl fmt::Display for Board {
     /// This provides simple formatted output of the board.
     ///
-    /// This is suitable for use in simple console applications or debugging 
+    /// This is suitable for use in simple console applications or debugging
     /// purposes.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        panic!("This function is not implemented");
+        for row in &self.squares {
+            self.write_row_separator(f)?;
+            self.write_row_content(f, row)?;
+        }
+
+        // Write the final separator to finish off the board.
+        self.write_row_separator(f)
     }
 }
 
 
 /// An iterator over th squares in a `Board`.
-pub struct Iter {
-    // TODO: Figure out how to access the board here.
-
+pub struct Iter<'a> {
+    board: &'a Board,
+    position: Position,
 }
 
-impl Iterator for Iter {
+impl Iterator for Iter<'_> {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
-        panic!("This function is not implemented");
+        // Get the square at the current position.
+        let next_item = self.board.get(self.position);
+
+        // Calculate the next position by incrementing the column then checking
+        // if we need to wrap to the next row.
+        let board_size = self.board.size();
+        self.position.column += 1;
+        if self.position.column >= board_size.columns {
+            self.position.column = 0;
+            self.position.row += 1;
+        }
+
+        // We also check for the row to exceed the board size. However, in this
+        // case we let the position jump to the next row after the board area.
+        // This causes next() to return None for the next item ensuring iteration
+        // is stopped.
+        if self.position.row > board_size.rows {
+            self.position.row = 0;
+        }
+
+        next_item
     }
 }
 
@@ -99,17 +187,17 @@ pub struct Square {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Size {
     /// The number of rows.
-    pub rows: i32,
+    pub rows: usize,
 
     /// The number of columns.
-    pub columns: i32,
+    pub columns: usize,
 }
 
-impl From<(i32, i32)> for Size {
+impl From<(usize, usize)> for Size {
 
     /// Creates a Size structure from the given tuple.
     #[inline]
-    fn from(value: (i32, i32)) -> Size {
+    fn from(value: (usize, usize)) -> Size {
         Size {
             rows: value.0,
             columns: value.1,
@@ -133,17 +221,17 @@ impl From<(i32, i32)> for Size {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Position {
     /// The row associated with the position.
-    pub row: i32,
+    pub row: usize,
 
     /// The column associated with the position.
-    pub column: i32,
+    pub column: usize,
 }
 
-impl From<(i32, i32)> for Position {
+impl From<(usize, usize)> for Position {
 
     /// Creates a Position structure from the given tuple.
     #[inline]
-    fn from(value: (i32, i32)) -> Position {
+    fn from(value: (usize, usize)) -> Position {
         Position {
             row: value.0,
             column: value.1,
@@ -167,8 +255,8 @@ pub enum Owner {
 
 
 // This module contains the tests for the types in this file.
-// 
-// The test naming format is: 
+//
+// The test naming format is:
 //   <method>_when_<scenario_being_tested>_should_<expected_behavior>
 // Also, try test exactly one item per test, e.g. one assert per test.
 #[cfg(test)]
@@ -176,8 +264,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn board_new_when_given_0x0_size_should_create_0x0_board() {
-        let expected_size = Size::from((3, 3));
+    fn board_new_when_given_1x1_size_should_create_1x1_board() {
+        let expected_size = Size{ rows: 1, columns: 1, };
+
+        let board = Board::new(expected_size);
+        let actual_size = board.size();
+
+        assert_eq!(expected_size, actual_size);
+    }
+
+    #[test]
+    fn board_new_should_contain_squares_with_no_owner() {
+        let size = Size{ rows: 1, columns: 1, };
+        let position = Position {row: 0, column: 0 };
+        let expected_owner = Owner::None;
+
+        let board = Board::new(size);
+        let actual_owner = board.get(position).unwrap().owner;
+
+        assert_eq!(expected_owner, actual_owner);
+    }
+
+    #[test]
+    fn board_new_when_given_3x3_size_should_create_3x3_board() {
+        let expected_size = Size{ rows: 3, columns: 3, };
+
+        let board = Board::new(expected_size);
+        let actual_size = board.size();
+
+        assert_eq!(expected_size, actual_size);
+    }
+
+    #[test]
+    fn board_new_when_given_1x3_size_should_create_1x3_board() {
+        let expected_size = Size{ rows: 1, columns: 3, };
 
         let board = Board::new(expected_size);
         let actual_size = board.size();
@@ -187,10 +307,10 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn board_new_when_given_negative_rows_size_should_panic() {
+    fn board_new_when_given_0x1_size_should_panic() {
         let invalid_size = Size {
-            rows: -1,
-            columns: 0,
+            rows: 0,
+            columns: 1,
         };
 
         let _board = Board::new(invalid_size);
@@ -198,10 +318,10 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn board_new_when_given_negative_columns_size_should_panic() {
+    fn board_new_when_given_1x0_size_should_panic() {
         let invalid_size = Size {
-            rows: 0,
-            columns: -1,
+            rows: 1,
+            columns: 0,
         };
 
         let _board = Board::new(invalid_size);
@@ -241,6 +361,23 @@ mod tests {
     }
 
     #[test]
+    fn board_get_when_non_square_board_should_get_correct_position() {
+        // Make a board that is non square. This ensures the correct row and
+        // column are returned.
+        let mut board = Board::new(Size { rows: 2, columns: 5 });
+        let position = Position { row: 1, column: 3 };
+        // Since squares start with no owner, mark the square at the expected
+        // position to ensure we are getting the correct square.
+        let square = Square {owner: Owner::PlayerX, position, };
+        let expected = Some(square);
+
+        board.set(square);
+        let actual = board.get(position);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn board_get_when_not_contains_position_should_be_none() {
         let board = Board::new(Size { rows: 1, columns: 1 });
         let position_not_in_board = Position { row: 1, column: 0 };
@@ -253,7 +390,7 @@ mod tests {
 
     #[test]
     fn board_set_when_given_square_with_different_owner_should_change_square_owner() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let mut board = Board::new(Size { rows: 1, columns: 1 });
         let position = Position { row: 0, column: 0 };
         let expected = Square{ owner: Owner::PlayerX, position, };
 
@@ -266,7 +403,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn board_set_when_given_square_outside_board_should_panic() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let mut board = Board::new(Size { rows: 1, columns: 1 });
         let position_outside_board = Position { row: 1, column: 0 };
         let square_outside_board = Square{ owner: Owner::PlayerX, position: position_outside_board, };
 
@@ -282,7 +419,7 @@ mod tests {
         let board = Board::new(Size { rows, columns, });
         let expected = rows * columns;
 
-        let actual = board.iter().count() as i32;
+        let actual = board.iter().count();
 
         assert_eq!(expected, actual);
     }
@@ -290,28 +427,28 @@ mod tests {
     #[allow(non_snake_case)]
     #[test]
     fn board_display_when_X_own_squares_should_contain_X_characters() {
-        let board = Board::new(Size { rows: 1, columns: 1, });
+        let mut board = Board::new(Size { rows: 1, columns: 1, });
         let position = Position { row: 0, column: 0 };
         let square = Square{ owner: Owner::PlayerX, position, };
         board.set(square);
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
-        
+
         assert!(textual_representation.contains("X"));
     }
 
     #[allow(non_snake_case)]
     #[test]
     fn board_display_when_O_own_squares_should_contain_O_characters() {
-        let board = Board::new(Size { rows: 1, columns: 1, });
+        let mut board = Board::new(Size { rows: 1, columns: 1, });
         let position = Position { row: 0, column: 0 };
         let square = Square{ owner: Owner::PlayerO, position, };
         board.set(square);
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
-        
+
         assert!(textual_representation.contains("O"));
     }
 
