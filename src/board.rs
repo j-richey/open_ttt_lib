@@ -138,7 +138,7 @@ impl fmt::Display for Board {
 }
 
 
-/// An iterator over th squares in a `Board`.
+/// An iterator over the squares in a `Board`.
 pub struct Iter<'a> {
     board: &'a Board,
     position: Position,
