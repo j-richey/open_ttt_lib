@@ -10,7 +10,8 @@ use crate::board;
 /// enforces the rules of Tic Tac Toe.
 #[derive(Clone)]
 pub struct Game {
-
+    board: board::Board,
+    state: State,
 }
 
 impl Game {
@@ -161,6 +162,114 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn game_new_should_create_3x3_board() {
+        let expected_size = board::Size { rows: 3, columns: 3 };
+
+        let game = Game::new();
+        let actual_size = game.board().size();
+
+        assert_eq!(expected_size, actual_size);
+    }
+
+    #[test]
+    fn game_new_should_not_be_game_over_state() {
+        let expected_is_game_over = false;
+
+        let game = Game::new();
+        let actual_is_game_over = game.state().is_game_over();
+
+        assert_eq!(expected_is_game_over, actual_is_game_over);
+    }
+
+    #[test]
+    fn game_new_should_all_squares_should_be_free() {
+        let game = Game::new();
+        let board_size = game.board().size();
+        // Calculate the expected number of free squares. This is equal to the
+        // total number of squares.
+        let expected_free_squares = board_size.rows * board_size.columns;
+
+        let actual_free_squares = game.free_squares().count();
+
+        assert_eq!(expected_free_squares, actual_free_squares);
+    }
+
+    #[test]
+    fn game_do_move_when_free_position_and_not_game_over_should_return_next_player_move_state() {
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+        let expected_state = State::PlayerOMove;
+
+        let actual_state = game.do_move(board::Position{ row: 0, column: 0 }).unwrap();
+
+        assert_eq!(expected_state, actual_state);
+    }
+
+    #[test]
+    fn game_do_move_when_owned_position_should_return_error() {
+        let position = board::Position{ row: 0, column: 0 };
+        let mut game = Game::new();
+        // Mark the position as being owned by doing a move on it.
+        game.do_move(position).unwrap();
+
+        // Do a second move to the same position.
+        let move_result = game.do_move(position);
+
+        assert!(move_result.is_err());
+    }
+
+    #[test]
+    fn game_do_move_when_winning_move_should_return_game_over_state() {
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+        // Configure the board so the next move is a winning move.
+        game.board.set(board::Square{
+            owner: board::Owner::PlayerX,
+            position: board::Position{ row: 0, column: 0 },
+        });
+        game.board.set(board::Square{
+            owner: board::Owner::PlayerX,
+            position: board::Position{ row: 0, column: 1 },
+        });
+
+        // Do the final move ot get three X's in a row.
+        let actual_state = game.do_move(board::Position{ row: 0, column: 2 }).unwrap();
+
+        assert!(actual_state.is_game_over());
+    }
+
+    #[test]
+    fn game_start_next_game_should_ensure_player_who_went_went_second_goes_first_next_game() {
+        let mut game = Game::new();
+        let first_player_last_game = game.state();
+
+        let first_player_next_game = game.start_next_game();
+
+        assert_ne!(first_player_last_game, first_player_next_game);
+    }
+
+    #[test]
+    fn game_start_next_game_should_alternate_between_players_who_go_first() {
+        let mut game = Game::new();
+
+        let player_1 = game.start_next_game();
+        let player_2 = game.start_next_game();
+
+        assert_ne!(player_1, player_2);
+    }
+
+    #[test]
+    fn game_start_next_game_when_game_not_over_should_start_next_game() {
+        let mut game = Game::new();
+        let expected_is_game_over = false;
+
+        game.start_next_game();
+        let actual_is_game_over = game.state().is_game_over();
+
+        assert_eq!(expected_is_game_over, actual_is_game_over);
+    }
 
     #[test]
     fn state_is_game_over_when_player_X_move_should_be_false() {
