@@ -34,14 +34,6 @@ impl Game {
         panic!("This function is not implemented!");
     }
 
-    /// Gets an iterator that iterates over all the sets of squares that, if all
-    /// owned by a player, would make the player victorious.
-    ///
-    /// E.g. this gets all the rows, columns, and both diagonals.
-    pub fn victory_sets(&self) -> VictorySets {
-        panic!("This function is not implemented!");
-    }
-
     /// Gets the current state of the game.
     pub fn state(&self) -> State {
         panic!("This function is not implemented!");
@@ -89,19 +81,21 @@ impl Iterator for FreeSquares {
     }
 }
 
-/// An iterator over all the sets of squares that, if all owned by a player,
-/// would make the player victorious.
-pub struct VictorySets {
 
+/// An iterator that provides all the square that contributed to a player's win.
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct WinSquares {
+    // win_sets: Vec<Vec<board::Square>>,
 }
 
-impl Iterator for VictorySets {
+impl Iterator for WinSquares {
     type Item = Vec<board::Square>;
 
     fn next(&mut self) -> Option<Self::Item> {
         panic!("This function is not implemented!");
     }
 }
+
 
 /// Error used when an invalid move is attempted.
 #[derive(Debug)]
@@ -122,7 +116,7 @@ impl error::Error for InvalidMoveError {
 
 
 /// Indicates the state of the game.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum State {
     /// Player X's turn to mark an empty square.
     PlayerXMove,
@@ -131,10 +125,10 @@ pub enum State {
     PlayerOMove,
 
     /// Player X has won the game.
-    PlayerXWin,
+    PlayerXWin(WinSquares),
 
     /// Player O has won the game.
-    PlayerOWin,
+    PlayerOWin(WinSquares),
 
     /// The game has ended in a draw where there are no winners.
     CatsGame,
@@ -150,8 +144,8 @@ impl State {
         match self {
             State::PlayerXMove => false,
             State::PlayerOMove => false,
-            State::PlayerXWin => true,
-            State::PlayerOWin => true,
+            State::PlayerXWin(_) => true,
+            State::PlayerOWin(_) => true,
             State::CatsGame => true,
         }
     }
@@ -194,6 +188,66 @@ mod tests {
         let actual_free_squares = game.free_squares().count();
 
         assert_eq!(expected_free_squares, actual_free_squares);
+    }
+
+    #[test]
+    fn game_free_squares_should_not_contain_any_owned_squares() {
+        let mut game = Game::new();
+        // Configure the board so each player owns some squares.
+        game.board.set(board::Square{
+            owner: board::Owner::PlayerX,
+            position: board::Position{ row: 0, column: 0 },
+        });
+        game.board.set(board::Square{
+            owner: board::Owner::PlayerO,
+            position: board::Position{ row: 0, column: 1 },
+        });
+        let expected_num_owned_squares = 0;
+
+        let actual_num_owned_squares = game.free_squares().filter(
+            |x| x.owner != board::Owner::None).count();
+
+        assert_eq!(expected_num_owned_squares, actual_num_owned_squares);
+    }
+
+    #[test]
+    fn game_can_move_when_unowned_square_should_be_true() {
+        let position = board::Position{ row: 0, column: 0, };
+        let game = Game::new();
+        // No squares are owned yet.
+        let expected_can_move = true;
+
+        let actual_can_move = game.can_move(position);
+
+        assert_eq!(expected_can_move, actual_can_move);
+    }
+
+    #[test]
+    fn game_can_move_when_owned_square_should_be_false() {
+        let position = board::Position{ row: 0, column: 0, };
+        let mut game = Game::new();
+        // Give the position an owner.
+        game.board.set(board::Square{
+            owner: board::Owner::PlayerX,
+            position,
+        });
+        let expected_can_move = false;
+
+        let actual_can_move = game.can_move(position);
+
+        assert_eq!(expected_can_move, actual_can_move);
+    }
+
+    #[test]
+    fn game_can_move_when_game_over_should_be_false() {
+        let position = board::Position{ row: 0, column: 0, };
+        let mut game = Game::new();
+        game.state = State::CatsGame;
+        let expected_can_move = false;
+
+        let actual_can_move = game.can_move(position);
+
+        assert_eq!(expected_can_move, actual_can_move);
     }
 
     #[test]
@@ -271,6 +325,7 @@ mod tests {
         assert_eq!(expected_is_game_over, actual_is_game_over);
     }
 
+
     #[test]
     fn state_is_game_over_when_player_X_move_should_be_false() {
         let state = State::PlayerXMove;
@@ -293,7 +348,7 @@ mod tests {
 
     #[test]
     fn state_is_game_over_when_player_X_win_should_be_true() {
-        let state = State::PlayerXWin;
+        let state = State::PlayerXWin(Default::default());
         let expected_is_game_over = true;
 
         let actual_is_game_over = state.is_game_over();
@@ -303,7 +358,7 @@ mod tests {
 
     #[test]
     fn state_is_game_over_when_player_O_win_should_be_true() {
-        let state = State::PlayerOWin;
+        let state = State::PlayerOWin(Default::default());
         let expected_is_game_over = true;
 
         let actual_is_game_over = state.is_game_over();
