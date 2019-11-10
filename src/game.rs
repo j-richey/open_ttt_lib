@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::error;
 use std::fmt;
 
@@ -28,14 +29,16 @@ impl Game {
         panic!("This function is not implemented!");
     }
 
-    /// Gets an iterator that iterates the squares in the game that do not have
-    ///  an owner.
-    pub fn free_squares(&self) -> FreeSquares {
+    /// Gets the current state of the game.
+    pub fn state(&self) -> State {
         panic!("This function is not implemented!");
     }
 
-    /// Gets the current state of the game.
-    pub fn state(&self) -> State {
+    /// Gets an iterator over the free positions that do not have an owner and
+    /// thus can be provided to `do_move()`.
+    ///
+    /// When the game is over there are no free positions.
+    pub fn free_positions(&self) -> FreePositions {
         panic!("This function is not implemented!");
     }
 
@@ -68,28 +71,13 @@ impl Game {
 }
 
 
-/// An iterator over free squares in a `Game`.
-pub struct FreeSquares {
+/// An iterator over free positions in a `Game`; that is positions do not have an owner.
+pub struct FreePositions {
 
 }
 
-impl Iterator for FreeSquares {
-    type Item = board::Square;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        panic!("This function is not implemented!");
-    }
-}
-
-
-/// An iterator that provides all the square that contributed to a player's win.
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct WinSquares {
-    // win_sets: Vec<Vec<board::Square>>,
-}
-
-impl Iterator for WinSquares {
-    type Item = Vec<board::Square>;
+impl Iterator for FreePositions {
+    type Item = board::Position;
 
     fn next(&mut self) -> Option<Self::Item> {
         panic!("This function is not implemented!");
@@ -116,7 +104,7 @@ impl error::Error for InvalidMoveError {
 
 
 /// Indicates the state of the game.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
     /// Player X's turn to mark an empty square.
     PlayerXMove,
@@ -125,10 +113,10 @@ pub enum State {
     PlayerOMove,
 
     /// Player X has won the game.
-    PlayerXWin(WinSquares),
+    PlayerXWin(HashSet<board::Position>),
 
     /// Player O has won the game.
-    PlayerOWin(WinSquares),
+    PlayerOWin(HashSet<board::Position>),
 
     /// The game has ended in a draw where there are no winners.
     CatsGame,
@@ -178,43 +166,41 @@ mod tests {
     }
 
     #[test]
-    fn game_new_should_all_squares_should_be_free() {
+    fn game_new_should_all_positions_should_be_free() {
         let game = Game::new();
         let board_size = game.board().size();
-        // Calculate the expected number of free squares. This is equal to the
-        // total number of squares.
+        // Calculate the expected number of free positions. This is equal to the
+        // total number of positions.
         let expected_free_squares = board_size.rows * board_size.columns;
 
-        let actual_free_squares = game.free_squares().count();
+        let actual_free_squares = game.free_positions().count();
 
         assert_eq!(expected_free_squares, actual_free_squares);
     }
 
     #[test]
-    fn game_free_squares_should_not_contain_any_owned_squares() {
+    fn game_free_positions_should_not_contain_any_owned_positions() {
         let mut game = Game::new();
-        // Configure the board so each player owns some squares.
-        game.board.set(board::Square{
-            owner: board::Owner::PlayerX,
-            position: board::Position{ row: 0, column: 0 },
-        });
-        game.board.set(board::Square{
-            owner: board::Owner::PlayerO,
-            position: board::Position{ row: 0, column: 1 },
-        });
+        // Configure the board so each player owns some positions.
+        *game.board
+            .get_mut(board::Position{ row: 0, column: 0 })
+            .unwrap() = board::Owner::PlayerX;
+        *game.board
+            .get_mut(board::Position{ row: 0, column: 1 })
+            .unwrap() = board::Owner::PlayerO;
         let expected_num_owned_squares = 0;
 
-        let actual_num_owned_squares = game.free_squares().filter(
-            |x| x.owner != board::Owner::None).count();
+        let actual_num_owned_squares = game.free_positions().filter(
+            |x| game.board().get(*x).unwrap() != board::Owner::None).count();
 
         assert_eq!(expected_num_owned_squares, actual_num_owned_squares);
     }
 
     #[test]
-    fn game_can_move_when_unowned_square_should_be_true() {
+    fn game_can_move_when_unowned_positions_should_be_true() {
         let position = board::Position{ row: 0, column: 0, };
         let game = Game::new();
-        // No squares are owned yet.
+        // No positions are owned yet.
         let expected_can_move = true;
 
         let actual_can_move = game.can_move(position);
@@ -223,14 +209,11 @@ mod tests {
     }
 
     #[test]
-    fn game_can_move_when_owned_square_should_be_false() {
+    fn game_can_move_when_owned_positions_should_be_false() {
         let position = board::Position{ row: 0, column: 0, };
         let mut game = Game::new();
         // Give the position an owner.
-        game.board.set(board::Square{
-            owner: board::Owner::PlayerX,
-            position,
-        });
+        *game.board.get_mut(position).unwrap() = board::Owner::PlayerX;
         let expected_can_move = false;
 
         let actual_can_move = game.can_move(position);
@@ -279,14 +262,8 @@ mod tests {
         let mut game = Game::new();
         game.state = State::PlayerXMove;
         // Configure the board so the next move is a winning move.
-        game.board.set(board::Square{
-            owner: board::Owner::PlayerX,
-            position: board::Position{ row: 0, column: 0 },
-        });
-        game.board.set(board::Square{
-            owner: board::Owner::PlayerX,
-            position: board::Position{ row: 0, column: 1 },
-        });
+        *game.board.get_mut(board::Position{ row: 0, column: 0 }).unwrap() = board::Owner::PlayerX;
+        *game.board.get_mut(board::Position{ row: 0, column: 1 }).unwrap() = board::Owner::PlayerX;
 
         // Do the final move ot get three X's in a row.
         let actual_state = game.do_move(board::Position{ row: 0, column: 2 }).unwrap();
