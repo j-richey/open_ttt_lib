@@ -11,3 +11,6 @@ os:
   - linux
   - osx
   - windows
+script:
+  - RUSTFLAGS="-D warnings" cargo build --verbose
+  - cargo test --verbose

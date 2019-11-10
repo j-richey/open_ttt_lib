@@ -1,5 +1,3 @@
-#![deny(missing_docs)]
-
 //! Provides common Tic Tac Toe logic and artificial intelligence algorithms.
 
 
