@@ -66,32 +66,46 @@ impl Board {
         position.row < size.rows && position.column < size.columns
     }
 
-    /// Returns a copy of the square at the indicated position or `None`
+    /// Returns a copy of the owner at the indicated position or `None`
     /// if the board does not contain the provided position.
-    pub fn get(&self, position: Position) -> Option<Square> {
+    pub fn get(&self, position: Position) -> Option<Owner> {
         if self.contains(position) {
             let owner = self.squares[position.row][position.column];
-            Some(Square{ owner, position })
+            Some(owner)
         } else {
             None
         }
     }
 
-    /// Replaces the square, denoted by its position, with the provided square.
+    /// Gets a mutable reference ot the owner at the indicated position.
     ///
-    /// # Panics
-    /// Panics if the board does not contain a square at the provided square's
-    /// position.
-    pub fn set(&mut self, square: Square) {
-        if self.contains(square.position) {
-            self.squares[square.position.row][square.position.column] = square.owner;
+    /// This allows the owner of the position to be changed. `None` is returned
+    /// if the board does not contain the provided position.
+    ///
+    /// # Examples
+    /// ```
+    /// let size = open_ttt_lib::Size { rows: 3, columns: 3 };
+    /// let position = open_ttt_lib::Position { row: 2, column: 2 };
+    /// let mut board = open_ttt_lib::Board::new(size);
+    ///
+    /// if let Some(owner) = board.get_mut(position) {
+    ///     *owner = open_ttt_lib::Owner::PlayerX;
+    /// }
+    ///
+    /// assert_eq!(board.get(position), Some(open_ttt_lib::Owner::PlayerX));
+    /// ```
+    pub fn get_mut(&mut self, position: Position) -> Option<&mut Owner> {
+        if self.contains(position) {
+            self.squares[position.row].get_mut(position.column)
         } else {
-            panic!("The position of the provided square, {:?} is outside the boards size of {:?}.",
-                square.position, self.size());
+            None
         }
     }
 
-    /// Gets an iterator over all the squares in a `Board`.
+    /// Gets an iterator over all the positions in the board.
+    ///
+    /// The iterator provides tuples containing the position and the owner of the
+    /// position.
     pub fn iter(&self) -> Iter {
         Iter {
             board: &self,
@@ -108,7 +122,7 @@ impl Board {
     }
 
     // Helper function for displaying boards that writes the content of the row.
-    fn write_row_content(&self, f: &mut fmt::Formatter<'_>, row: &Vec<Owner>) -> fmt::Result {
+    fn write_row_content(&self, f: &mut fmt::Formatter<'_>, row: &[Owner]) -> fmt::Result {
         for owner in row {
             match owner {
                 Owner::PlayerX => write!(f, "| X "),
@@ -145,11 +159,14 @@ pub struct Iter<'a> {
 }
 
 impl Iterator for Iter<'_> {
-    type Item = Square;
+    type Item = (Position, Owner);
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Get the square at the current position.
-        let next_item = self.board.get(self.position);
+        // Get the owner at the current position.
+        let next_value = match self.board.get(self.position) {
+            Some(owner) => Some((self.position, owner)),
+            None => None,
+        };
 
         // Calculate the next position by incrementing the column then checking
         // if we need to wrap to the next row.
@@ -168,20 +185,9 @@ impl Iterator for Iter<'_> {
             self.position.row = 0;
         }
 
-        next_item
+        next_value
     }
 }
-
-/// Represents an individual square of the game board.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Square {
-    /// The owner of the square.
-    pub owner: Owner,
-
-    /// The position the square is located at on the board.
-    pub position: Position,
-}
-
 
 /// Represents the size of the board in number of rows and columns.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -240,16 +246,16 @@ impl From<(usize, usize)> for Position {
 }
 
 
-/// Indicates which player owns a square, if any.
+/// Indicates which player owns a position, if any.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Owner {
-    /// Player X owns the square.
+    /// Player X owns the position.
     PlayerX,
 
-    /// Player O owns the square.
+    /// Player O owns the position.
     PlayerO,
 
-    /// No player owns the square.
+    /// No player owns the position.
     None,
 }
 
@@ -280,7 +286,7 @@ mod tests {
         let expected_owner = Owner::None;
 
         let board = Board::new(size);
-        let actual_owner = board.get(position).unwrap().owner;
+        let actual_owner = board.get(position).unwrap();
 
         assert_eq!(expected_owner, actual_owner);
     }
@@ -348,30 +354,12 @@ mod tests {
     }
 
     #[test]
-    fn board_get_when_contains_position_should_be_some_square() {
+    fn board_get_when_contains_position_should_be_some_owner() {
         let board = Board::new(Size { rows: 1, columns: 1 });
         let position = Position { row: 0, column: 0 };
-        // Note that new board squares start with no owner.
-        let square = Square {owner: Owner::None, position, };
-        let expected = Some(square);
+        // Note that for new boards positions start with no owner.
+        let expected = Some(Owner::None);
 
-        let actual = board.get(position);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn board_get_when_non_square_board_should_get_correct_position() {
-        // Make a board that is non square. This ensures the correct row and
-        // column are returned.
-        let mut board = Board::new(Size { rows: 2, columns: 5 });
-        let position = Position { row: 1, column: 3 };
-        // Since squares start with no owner, mark the square at the expected
-        // position to ensure we are getting the correct square.
-        let square = Square {owner: Owner::PlayerX, position, };
-        let expected = Some(square);
-
-        board.set(square);
         let actual = board.get(position);
 
         assert_eq!(expected, actual);
@@ -389,31 +377,32 @@ mod tests {
     }
 
     #[test]
-    fn board_set_when_given_square_with_different_owner_should_change_square_owner() {
+    fn board_get_mut_when_given_new_owner_should_change_owner() {
         let mut board = Board::new(Size { rows: 1, columns: 1 });
         let position = Position { row: 0, column: 0 };
-        let expected = Square{ owner: Owner::PlayerX, position, };
+        let expected_owner = Owner::PlayerX;
 
-        board.set(expected);
-        let actual = board.get(position).unwrap();
+        *board.get_mut(position).unwrap() = expected_owner;
+        let actual_owner = board.get(position).unwrap();
+
+        assert_eq!(expected_owner, actual_owner);
+    }
+
+    #[test]
+    fn board_get_mut_when_given_position_outside_board_should_return_none() {
+        let mut board = Board::new(Size { rows: 1, columns: 1 });
+        let position_outside_board = Position { row: 1, column: 0 };
+        let expected = None;
+
+        let actual = board.get_mut(position_outside_board);
 
         assert_eq!(expected, actual);
     }
 
     #[test]
-    #[should_panic]
-    fn board_set_when_given_square_outside_board_should_panic() {
-        let mut board = Board::new(Size { rows: 1, columns: 1 });
-        let position_outside_board = Position { row: 1, column: 0 };
-        let square_outside_board = Square{ owner: Owner::PlayerX, position: position_outside_board, };
-
-        board.set(square_outside_board);
-    }
-
-    #[test]
-    fn board_iter_should_include_all_squares() {
-        // To see if this iter contains all the squares we count the number of
-        // squares seen by the iter compared to the expected value.
+    fn board_iter_should_include_all_positions() {
+        // To see if this iter contains all the positions we count the number of
+        // items seen by the iter compared to the expected value.
         let rows = 1;
         let columns = 1;
         let board = Board::new(Size { rows, columns, });
@@ -424,13 +413,22 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
+    #[test]
+    fn board_iter_should_provide_position_and_owner() {
+        let board = Board::new(Size { rows: 1, columns: 1, });
+        let expected = (Position { row: 0, column: 0 }, Owner::None );
+
+        let actual = board.iter().next().unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
     #[allow(non_snake_case)]
     #[test]
     fn board_display_when_X_own_squares_should_contain_X_characters() {
         let mut board = Board::new(Size { rows: 1, columns: 1, });
         let position = Position { row: 0, column: 0 };
-        let square = Square{ owner: Owner::PlayerX, position, };
-        board.set(square);
+        *board.get_mut(position).unwrap() = Owner::PlayerX;
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
@@ -443,87 +441,13 @@ mod tests {
     fn board_display_when_O_own_squares_should_contain_O_characters() {
         let mut board = Board::new(Size { rows: 1, columns: 1, });
         let position = Position { row: 0, column: 0 };
-        let square = Square{ owner: Owner::PlayerO, position, };
-        board.set(square);
+        *board.get_mut(position).unwrap() = Owner::PlayerO;
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
 
         assert!(textual_representation.contains("O"));
     }
-
-
-    #[test]
-    fn square_when_same_owner_and_position_should_equal() {
-        let owner = Owner::PlayerX;
-        let position = Position::from((1, 2));
-        let a = Square {
-            owner,
-            position,
-        };
-        let b = Square {
-            owner,
-            position,
-        };
-
-        assert_eq!(a, b);
-    }
-
-    #[test]
-    fn square_when_different_owner_should_not_equal() {
-        let position = Position::from((1, 2));
-        let a = Square {
-            owner: Owner::PlayerX,
-            position,
-        };
-        let b = Square {
-            owner: Owner::PlayerO,
-            position,
-        };
-
-        assert_ne!(a, b);
-    }
-
-    #[test]
-    fn square_when_different_position_should_not_equal() {
-        let owner = Owner::PlayerX;
-        let a = Square {
-            owner,
-            position: Position::from((0, 0)),
-        };
-        let b = Square {
-            owner,
-            position: Position::from((1, 2)),
-        };
-
-        assert_ne!(a, b);
-    }
-
-    #[test]
-    fn square_when_copied_should_compare_equal() {
-        let expected = Square {
-            owner: Owner::PlayerX,
-            position: Position::from((1, 2)),
-        };
-
-        // Perform a copy.
-        let actual = expected;
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn square_when_cloned_should_compare_equal() {
-        let expected = Square {
-            owner: Owner::PlayerX,
-            position: Position::from((1, 2)),
-        };
-
-        let actual = expected.clone();
-
-        assert_eq!(expected, actual);
-    }
-
 
     #[test]
     fn size_when_same_should_compare_equal() {
