@@ -21,17 +21,21 @@ impl Game {
     /// **Note:** use `start_next_game()` for playing consecutive games to ensure
     /// each player gets to start the game.
     pub fn new() -> Game {
-        panic!("This function is not implemented!");
+        const BOARD_SIZE: board::Size = board::Size{ rows: 3, columns: 3 };
+        let board = board::Board::new(BOARD_SIZE);
+        let state = State::PlayerXMove;
+
+        Game{ board, state }
     }
 
     /// Gets the board associated with the game.
     pub fn board(&self) -> &board::Board {
-        panic!("This function is not implemented!");
+        &self.board
     }
 
     /// Gets the current state of the game.
     pub fn state(&self) -> State {
-        panic!("This function is not implemented!");
+        self.state.clone()
     }
 
     /// Gets an iterator over the free positions that do not have an owner and
@@ -39,15 +43,30 @@ impl Game {
     ///
     /// When the game is over there are no free positions.
     pub fn free_positions(&self) -> FreePositions {
-        panic!("This function is not implemented!");
+        FreePositions {
+            board_iter: self.board.iter(),
+            is_game_over: self.state.is_game_over()
+        }
     }
 
     /// Indicates if the square at the indicated position can be marked as owned.
     ///
     /// That is, if `can_move()` returns true then `do_move()` is guaranteed to
-    /// not return an error.
+    /// not return an error. False is returned if the position is owned, if the
+    /// game is over, or if the position is outside the area of the board.
     pub fn can_move(&self, position: board::Position) -> bool {
-        panic!("This function is not implemented!");
+        // If the game is over or if the position is outside the board area the
+        // a move cannot be performed. Otherwise, a move can be performed if
+        // the position has no owner.
+        if self.state.is_game_over() {
+            false
+        }
+        else if !self.board.contains(position) {
+            false
+        }
+        else {
+            self.board().get(position).unwrap() == board::Owner::None
+        }
     }
 
     /// Marks the indicated square as being owned by the current player.
@@ -72,15 +91,31 @@ impl Game {
 
 
 /// An iterator over free positions in a `Game`; that is positions do not have an owner.
-pub struct FreePositions {
-
+pub struct FreePositions<'a> {
+    board_iter: board::Iter<'a>,
+    is_game_over: bool,
 }
 
-impl Iterator for FreePositions {
+impl Iterator for FreePositions<'_> {
     type Item = board::Position;
 
     fn next(&mut self) -> Option<Self::Item> {
-        panic!("This function is not implemented!");
+        // There are no free positions if the game is over.
+        if self.is_game_over {
+            return None;
+        }
+
+        // Loop over all the positions looking for ones that are not Owned.
+        loop {
+            match self.board_iter.next() {
+                Some((position, owner)) => {
+                    if owner == board::Owner::None {
+                        return Some(position);
+                    }
+                }
+                None => return None
+            }
+        }
     }
 }
 
@@ -104,18 +139,25 @@ impl error::Error for InvalidMoveError {
 
 
 /// Indicates the state of the game.
+///
+/// The set of positions provided to PlayerXWin and PlayerOWin contain all the
+/// positions that contributed to the victory. Usually, this will be positions
+/// representing a row, column, or diagonal. However, there are some situations
+/// where more than one row, column, or diagonal contributed to a victory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
-    /// Player X's turn to mark an empty square.
+    /// Player X's turn to mark a free position.
     PlayerXMove,
 
-    /// Player O's turn to mark an empty square.
+    /// Player O's turn to mark a free position.
     PlayerOMove,
 
-    /// Player X has won the game.
+    /// Player X has won the game. The set of positions that contributed to the
+    /// win are provided as the enum value.
     PlayerXWin(HashSet<board::Position>),
 
-    /// Player O has won the game.
+    /// Player O has won the game. The set of positions that contributed to the
+    /// win are provided as the enum value.
     PlayerOWin(HashSet<board::Position>),
 
     /// The game has ended in a draw where there are no winners.
@@ -188,12 +230,24 @@ mod tests {
         *game.board
             .get_mut(board::Position{ row: 0, column: 1 })
             .unwrap() = board::Owner::PlayerO;
-        let expected_num_owned_squares = 0;
+        let expected_num_owned_positions = 0;
 
-        let actual_num_owned_squares = game.free_positions().filter(
+        let actual_num_owned_positions = game.free_positions().filter(
             |x| game.board().get(*x).unwrap() != board::Owner::None).count();
 
-        assert_eq!(expected_num_owned_squares, actual_num_owned_squares);
+        assert_eq!(expected_num_owned_positions, actual_num_owned_positions);
+    }
+
+    #[test]
+    fn game_free_positions_when_game_over_should_be_none() {
+        let mut game = Game::new();
+        // Force the game to be in a game over state.
+        game.state = State::CatsGame;
+        let expected_num_free_positions = 0;
+
+        let actual_num_free_positions = game.free_positions().count();
+
+        assert_eq!(expected_num_free_positions, actual_num_free_positions);
     }
 
     #[test]
@@ -229,6 +283,17 @@ mod tests {
         let expected_can_move = false;
 
         let actual_can_move = game.can_move(position);
+
+        assert_eq!(expected_can_move, actual_can_move);
+    }
+
+    #[test]
+    fn game_can_move_when_outside_game_board_should_be_false() {
+        let position_outside_game_board = board::Position{ row: 1000, column: 1000, };
+        let game = Game::new();
+        let expected_can_move = false;
+
+        let actual_can_move = game.can_move(position_outside_game_board);
 
         assert_eq!(expected_can_move, actual_can_move);
     }
