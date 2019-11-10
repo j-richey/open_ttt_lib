@@ -26,7 +26,7 @@ impl Board {
         for _ in 0..size.rows {
             let mut row: Vec<Owner> = Vec::new();
             for _ in 0..size.columns {
-                row.push(Owner::None);
+                row.push(Owner::default());
             }
             squares.push(row);
         }
@@ -257,6 +257,12 @@ pub enum Owner {
 
     /// No player owns the position.
     None,
+}
+
+impl Default for Owner {
+    fn default() -> Self {
+        Owner::None
+    }
 }
 
 
