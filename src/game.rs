@@ -1,8 +1,13 @@
 use std::collections::HashSet;
+use std::iter::FromIterator;
 use std::error;
 use std::fmt;
 
 use crate::board;
+
+
+// The size of a Tic Tac Toe board
+const BOARD_SIZE: board::Size = board::Size{ rows: 3, columns: 3 };
 
 /// Handles management of Tic Tac Toe games.
 ///
@@ -13,6 +18,8 @@ use crate::board;
 pub struct Game {
     board: board::Board,
     state: State,
+    // The state to use when starting the next game.
+    next_game_starting_state: State,
 }
 
 impl Game {
@@ -20,12 +27,13 @@ impl Game {
     ///
     /// **Note:** use `start_next_game()` for playing consecutive games to ensure
     /// each player gets to start the game.
-    pub fn new() -> Game {
-        const BOARD_SIZE: board::Size = board::Size{ rows: 3, columns: 3 };
+    pub fn new() -> Self {
+
         let board = board::Board::new(BOARD_SIZE);
         let state = State::PlayerXMove;
+        let next_game_starting_state = Self::get_next_game_starting_state(&state);
 
-        Game{ board, state }
+        Game{ board, state, next_game_starting_state }
     }
 
     /// Gets the board associated with the game.
@@ -58,10 +66,7 @@ impl Game {
         // If the game is over or if the position is outside the board area the
         // a move cannot be performed. Otherwise, a move can be performed if
         // the position has no owner.
-        if self.state.is_game_over() {
-            false
-        }
-        else if !self.board.contains(position) {
+        if self.state.is_game_over() || !self.board.contains(position) {
             false
         }
         else {
@@ -78,15 +83,137 @@ impl Game {
     /// An error is returned if the indicated position is already owned or if
     /// the game is over.
     pub fn do_move(&mut self, position: board::Position) -> Result<State, InvalidMoveError> {
-        panic!("This function is not implemented!");
+        // Ensure the provided position is valid.
+        // if !self.can_move(position) {
+        //     panic!("TODO: return an InvalidMoveError.");
+        // }
+
+        // Mark the given position as being owned by the player whose turn its.
+        let new_owner = match self.state {
+            State::PlayerXMove => board::Owner::PlayerX,
+            State::PlayerOMove => board::Owner::PlayerO,
+            _ => return Err(InvalidMoveError{ }),
+        };
+
+        match self.board.get_mut(position) {
+            Some(owner) => if let board::Owner::None = owner {
+                *owner = new_owner;
+            } else {
+               return Err(InvalidMoveError{ });
+            },
+            None => return Err(InvalidMoveError{ }),
+        };
+
+        // TODO: Update the state or something.
+        self.update_state();
+
+        // Return the current state of the game.
+        Ok(self.state())
     }
 
     /// Starts the next game by resetting the state machine ensuring the player
     /// who went second last game goes first next game.
     pub fn start_next_game(&mut self) -> State {
-        panic!("This function is not implemented!");
+        // Make a new board thus clearing out all existing positions.
+        self.board = board::Board::new(BOARD_SIZE);
+
+        // Set the current state and next game's starting state.
+        self.state = self.next_game_starting_state.clone();
+        self.next_game_starting_state = Self::get_next_game_starting_state(&self.state);
+
+        self.state()
     }
 
+    fn get_next_game_starting_state(current_starting_state: &State) -> State {
+        match current_starting_state {
+            State::PlayerXMove => State::PlayerOMove,
+            State::PlayerOMove => State::PlayerXMove,
+            _ => panic!("Attempting to use one of the of the game's victory \
+                    states to start a new game. This conditions indicates there \
+                    is a bug in the application's logic: a new game cannot also \
+                    be game over."),
+        }
+    }
+
+    fn update_state(&mut self) {
+
+        let mut all_positions = Vec::new();
+        // TODO: Look at all the rows, columns, and both diagonals to see if they
+        // are all owned by the
+        for row in 0..self.board.size().rows {
+            let starting_position = board::Position{ row, column: 0 };
+            let next_position_fn = |x: board::Position| board::Position{ row: x.row, column: x.column + 1 };
+            if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
+                all_positions.extend(winning_positions);
+            }
+        }
+
+        for column in 0..self.board.size().columns {
+            let starting_position = board::Position{ row: 0, column, };
+            let next_position_fn = |x: board::Position| board::Position{ row: x.row + 1, column: x.column };
+            if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
+                all_positions.extend(winning_positions);
+            }
+        }
+
+        let starting_position = board::Position{ row: 0, column: 0 };
+        let next_position_fn = |x: board::Position| board::Position{ row: x.row + 1, column: x.column + 1 };
+        if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
+            all_positions.extend(winning_positions);
+        }
+
+        // TODO: AHHHH, we might need to rethink the type here!
+        let starting_position = board::Position{ row: 0, column: 2 };
+        let next_position_fn = |x: board::Position| {
+            let last_position = board::Position{ row: 2, column: 0 };
+            if x != last_position {
+                board::Position{ row: x.row + 1, column: x.column - 1 }
+            } else {
+                board::Position{ row: 100, column: 100 }
+            }
+        };
+        if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
+            all_positions.extend(winning_positions);
+        }
+
+        let winning_positions: HashSet<board::Position> = all_positions.iter().cloned().collect();
+
+        if !winning_positions.is_empty() {
+            match self.board.get(*winning_positions.iter().next().unwrap()).unwrap() {
+                board::Owner::PlayerX => self.state = State::PlayerXWin(winning_positions),
+                board::Owner::PlayerO => self.state = State::PlayerOWin(winning_positions),
+                board::Owner::None => panic!("AHHHHH!"),
+            };
+        } else if self.board.iter().find(|(_position, owner)| *owner == board::Owner::None).is_none() {
+            // TODO: check for cat's game! AHHHH.
+            self.state = State::CatsGame;
+        } else {
+            match self.state {
+                State::PlayerXMove => self.state = State::PlayerOMove,
+                State::PlayerOMove => self.state = State::PlayerXMove,
+                _ =>  panic!("AHHHHH!"),
+            };
+        }
+    }
+
+    fn check_sequence(sequence: &mut board::Sequence) -> Option<Vec<board::Position>> {
+        let mut winning_positions = Vec::new();
+        if let Some((initial_position, initial_owner)) = sequence.next() {
+            winning_positions.push(initial_position);
+            for (position, owner) in sequence {
+                if owner == initial_owner  && owner != board::Owner::None {
+                    winning_positions.push(position);
+                }
+                else {
+                    return None;
+                }
+            }
+            return Some(winning_positions);
+        }
+        else{
+            return None;
+        }
+    }
 }
 
 
@@ -186,6 +313,16 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Helper function for setting the owner of the given positions.
+    //
+    // This function does not modify the state of the game or check to see if the
+    // provided positions already have an owner.
+    fn set_positions(game: &mut Game, owner: board::Owner, positions: &[board::Position]) {
+        for position in positions {
+            *game.board.get_mut(*position).unwrap() = owner;
+        }
+    }
 
     #[test]
     fn game_new_should_create_3x3_board() {
@@ -323,17 +460,197 @@ mod tests {
     }
 
     #[test]
-    fn game_do_move_when_winning_move_should_return_game_over_state() {
+    fn game_do_move_when_game_over_should_return_error() {
+        let position = board::Position{ row: 0, column: 0 };
+        let mut game = Game::new();
+        // Set a game over state.
+        game.state = State::CatsGame;
+
+        let move_result = game.do_move(position);
+
+        assert!(move_result.is_err());
+    }
+
+    #[test]
+    fn game_do_move_when_position_outside_board_should_return_error() {
+        let position_outside_board = board::Position{ row: 100, column: 100 };
+        let mut game = Game::new();
+
+        let move_result = game.do_move(position_outside_board);
+
+        assert!(move_result.is_err());
+    }
+
+    #[test]
+    fn game_do_move_when_three_X_in_row_should_return_player_X_win() {
         let mut game = Game::new();
         game.state = State::PlayerXMove;
         // Configure the board so the next move is a winning move.
-        *game.board.get_mut(board::Position{ row: 0, column: 0 }).unwrap() = board::Owner::PlayerX;
-        *game.board.get_mut(board::Position{ row: 0, column: 1 }).unwrap() = board::Owner::PlayerX;
+        let existing_positions = [
+            board::Position{ row: 0, column: 0 },
+            board::Position{ row: 0, column: 1 }];
+        set_positions(&mut game, board::Owner::PlayerX, &existing_positions);
+        let winning_position = board::Position{ row: 0, column: 2 };
+        // Build the set of expected winning positions.
+        let mut winning_positions: HashSet<board::Position> =
+            existing_positions.iter().cloned().collect();
+        winning_positions.insert(winning_position);
+        let expected_state = State::PlayerXWin(winning_positions);
 
-        // Do the final move ot get three X's in a row.
-        let actual_state = game.do_move(board::Position{ row: 0, column: 2 }).unwrap();
+        // Do the final move to get three X's in a row.
+        let actual_state = game.do_move(winning_position).unwrap();
 
-        assert!(actual_state.is_game_over());
+        assert_eq!(expected_state, actual_state);
+    }
+
+    #[test]
+    fn game_do_move_when_three_X_in_column_should_return_player_X_win() {
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+        // Configure the board so the next move is a winning move.
+        let existing_positions = [
+            board::Position{ row: 0, column: 0 },
+            board::Position{ row: 1, column: 0 }];
+        set_positions(&mut game, board::Owner::PlayerX, &existing_positions);
+        let winning_position = board::Position{ row: 2, column: 0 };
+        // Build the set of expected winning positions.
+        let mut winning_positions: HashSet<board::Position> =
+            existing_positions.iter().cloned().collect();
+        winning_positions.insert(winning_position);
+        let expected_state = State::PlayerXWin(winning_positions);
+
+        // Do the final move to get three X's in a column.
+        let actual_state = game.do_move(winning_position).unwrap();
+
+        assert_eq!(expected_state, actual_state);
+    }
+
+    #[test]
+    fn game_do_move_when_three_X_in_top_left_to_bottom_right_diagonal_should_return_player_X_win() {
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+        // Configure the board so the next move is a winning move.
+        let existing_positions = [
+            board::Position{ row: 0, column: 0 },
+            board::Position{ row: 1, column: 1 }];
+        set_positions(&mut game, board::Owner::PlayerX, &existing_positions);
+        let winning_position = board::Position{ row: 2, column: 2 };
+        // Build the set of expected winning positions.
+        let mut winning_positions: HashSet<board::Position> =
+            existing_positions.iter().cloned().collect();
+        winning_positions.insert(winning_position);
+        let expected_state = State::PlayerXWin(winning_positions);
+
+        // Do the final move to get three X's in a diagonal.
+        let actual_state = game.do_move(winning_position).unwrap();
+
+        assert_eq!(expected_state, actual_state);
+    }
+
+    #[test]
+    fn game_do_move_when_three_X_in_top_right_to_bottom_left_diagonal_should_return_player_X_win() {
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+        // Configure the board so the next move is a winning move.
+        let existing_positions = [
+            board::Position{ row: 0, column: 2 },
+            board::Position{ row: 1, column: 1 }];
+        set_positions(&mut game, board::Owner::PlayerX, &existing_positions);
+        let winning_position = board::Position{ row: 2, column: 0 };
+        // Build the set of expected winning positions.
+        let mut winning_positions: HashSet<board::Position> =
+            existing_positions.iter().cloned().collect();
+        winning_positions.insert(winning_position);
+        let expected_state = State::PlayerXWin(winning_positions);
+
+        // Do the final move to get three X's in a diagonal.
+        let actual_state = game.do_move(winning_position).unwrap();
+
+        assert_eq!(expected_state, actual_state, "Board is: \n{}", game.board());
+    }
+
+    #[test]
+    fn game_do_move_when_both_winning_row_and_diagonal_should_contain_all_winning_positions() {
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+        // Create a board where player X is about to win by with both a diagonal and row.
+        let existing_positions = [
+            board::Position{ row: 0, column: 1 },
+            board::Position{ row: 0, column: 2 },
+            board::Position{ row: 1, column: 1 },
+            board::Position{ row: 2, column: 2 }];
+        set_positions(&mut game, board::Owner::PlayerX, &existing_positions);
+        let winning_position = board::Position{ row: 0, column: 0 };
+        // Build the set of expected winning positions.
+        let mut winning_positions: HashSet<board::Position> =
+            existing_positions.iter().cloned().collect();
+        winning_positions.insert(winning_position);
+        let expected_state = State::PlayerXWin(winning_positions);
+
+        // Do the final move to get three X's in a diagonal.
+        let actual_state = game.do_move(winning_position).unwrap();
+
+        assert_eq!(expected_state, actual_state);
+    }
+
+    // We test at lease one of the victory conditions with player O to ensure
+    // it works the same as player X.
+    #[test]
+    fn game_do_move_when_three_O_in_row_should_return_player_O_win() {
+        let mut game = Game::new();
+        game.state = State::PlayerOMove;
+        // Configure the board so the next move is a winning move.
+        let existing_positions = [
+            board::Position{ row: 1, column: 0 },
+            board::Position{ row: 1, column: 1 }];
+        set_positions(&mut game, board::Owner::PlayerO, &existing_positions);
+        let winning_position = board::Position{ row: 1, column: 2 };
+        // Build the set of expected winning positions.
+        let mut winning_positions: HashSet<board::Position> =
+            existing_positions.iter().cloned().collect();
+        winning_positions.insert(winning_position);
+        let expected_state = State::PlayerOWin(winning_positions);
+
+        // Do the final move to get three O's in a row.
+        let actual_state = game.do_move(winning_position).unwrap();
+
+        assert_eq!(expected_state, actual_state);
+    }
+
+    #[test]
+    fn game_do_move_when_last_position_filled_should_return_cats_game() {
+        // Configure the board so there are never three marks in a row and the
+        // next move fills the board thus making no more free positions.
+        // The board is configured as follows:
+        //  +---+---+---+
+        //  | X | O | X |
+        //  +---+---+---+
+        //  | X | O | O |
+        //  +---+---+---+
+        //  | O | X | X*|
+        //  +---+---+---+
+        // Where the X* is the last position.
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+        let existing_X_positions = [
+            board::Position{ row: 0, column: 0 },
+            board::Position{ row: 0, column: 2 },
+            board::Position{ row: 1, column: 0 },
+            board::Position{ row: 2, column: 1 }];
+        set_positions(&mut game, board::Owner::PlayerX, &existing_X_positions);
+        let existing_O_positions = [
+            board::Position{ row: 0, column: 1 },
+            board::Position{ row: 1, column: 1 },
+            board::Position{ row: 1, column: 2 },
+            board::Position{ row: 2, column: 0 }];
+        set_positions(&mut game, board::Owner::PlayerO, &existing_O_positions);
+        let last_position = board::Position{ row: 2, column: 2 };
+        let expected_state = State::CatsGame;
+
+        // Fill the final position so there are no more moves.
+        let actual_state = game.do_move(last_position).unwrap();
+
+        assert_eq!(expected_state, actual_state);
     }
 
     #[test]
