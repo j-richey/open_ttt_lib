@@ -31,7 +31,7 @@ impl Game {
 
         let board = board::Board::new(BOARD_SIZE);
         let state = State::PlayerXMove;
-        let next_game_starting_state = Self::get_next_game_starting_state(&state);
+        let next_game_starting_state = Self::next_players_turn(&state);
 
         Game{ board, state, next_game_starting_state }
     }
@@ -83,31 +83,29 @@ impl Game {
     /// An error is returned if the indicated position is already owned or if
     /// the game is over.
     pub fn do_move(&mut self, position: board::Position) -> Result<State, InvalidMoveError> {
-        // Ensure the provided position is valid.
-        // if !self.can_move(position) {
-        //     panic!("TODO: return an InvalidMoveError.");
-        // }
-
         // Mark the given position as being owned by the player whose turn its.
+        // If we are in one of the game over states, or if the position is
+        // already owned, an error is returned.
         let new_owner = match self.state {
             State::PlayerXMove => board::Owner::PlayerX,
             State::PlayerOMove => board::Owner::PlayerO,
             _ => return Err(InvalidMoveError{ }),
         };
 
-        match self.board.get_mut(position) {
-            Some(owner) => if let board::Owner::None = owner {
-                *owner = new_owner;
-            } else {
-               return Err(InvalidMoveError{ });
-            },
+        let existing_owner = match self.board.get_mut(position) {
+            Some(owner) => owner,
             None => return Err(InvalidMoveError{ }),
         };
 
-        // TODO: Update the state or something.
-        self.update_state();
+        if *existing_owner != board::Owner::None {
+            return Err(InvalidMoveError{ });
+        }
 
-        // Return the current state of the game.
+        *existing_owner = new_owner;
+
+        // Now that the position's owner has been updated we can calculate and
+        // return the next state of the game based on the updated game board.
+        self.state = self.calculate_next_state();
         Ok(self.state())
     }
 
@@ -119,99 +117,127 @@ impl Game {
 
         // Set the current state and next game's starting state.
         self.state = self.next_game_starting_state.clone();
-        self.next_game_starting_state = Self::get_next_game_starting_state(&self.state);
+        self.next_game_starting_state = Self::next_players_turn(&self.state);
 
         self.state()
     }
 
-    fn get_next_game_starting_state(current_starting_state: &State) -> State {
-        match current_starting_state {
-            State::PlayerXMove => State::PlayerOMove,
-            State::PlayerOMove => State::PlayerXMove,
-            _ => panic!("Attempting to use one of the of the game's victory \
-                    states to start a new game. This conditions indicates there \
-                    is a bug in the application's logic: a new game cannot also \
-                    be game over."),
-        }
-    }
+    // Helper function that looks for the victory conditions, returning the next
+    // state of the game.
+    fn calculate_next_state(&self) -> State {
+        let mut all_winning_positions = Vec::new();
 
-    fn update_state(&mut self) {
-
-        let mut all_positions = Vec::new();
-        // TODO: Look at all the rows, columns, and both diagonals to see if they
-        // are all owned by the
+        // Check for winning a row.
         for row in 0..self.board.size().rows {
             let starting_position = board::Position{ row, column: 0 };
             let next_position_fn = |x: board::Position| board::Position{ row: x.row, column: x.column + 1 };
-            if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
-                all_positions.extend(winning_positions);
+            if let Some(winning_positions) = self.check_sequence(starting_position, next_position_fn) {
+                all_winning_positions.extend(winning_positions);
             }
         }
 
+        // Check for winning a column.
         for column in 0..self.board.size().columns {
             let starting_position = board::Position{ row: 0, column, };
             let next_position_fn = |x: board::Position| board::Position{ row: x.row + 1, column: x.column };
-            if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
-                all_positions.extend(winning_positions);
+            if let Some(winning_positions) = self.check_sequence(starting_position, next_position_fn) {
+                all_winning_positions.extend(winning_positions);
             }
         }
 
+        // Check for winning top left to bottom right.
         let starting_position = board::Position{ row: 0, column: 0 };
         let next_position_fn = |x: board::Position| board::Position{ row: x.row + 1, column: x.column + 1 };
-        if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
-            all_positions.extend(winning_positions);
+        if let Some(winning_positions) = self.check_sequence(starting_position, next_position_fn) {
+            all_winning_positions.extend(winning_positions);
         }
 
-        // TODO: AHHHH, we might need to rethink the type here!
+        // Check for top right to bottom left.
+        // Note: because positions currently use unsigned values we have to guard
+        // from going negative and use a position that is known to be outside the board.
         let starting_position = board::Position{ row: 0, column: 2 };
         let next_position_fn = |x: board::Position| {
             let last_position = board::Position{ row: 2, column: 0 };
             if x != last_position {
                 board::Position{ row: x.row + 1, column: x.column - 1 }
             } else {
-                board::Position{ row: 100, column: 100 }
+                board::Position{ row: BOARD_SIZE.rows, column: BOARD_SIZE.columns }
             }
         };
-        if let Some(winning_positions) = Self::check_sequence(&mut self.board.sequence(starting_position, next_position_fn)) {
-            all_positions.extend(winning_positions);
+        if let Some(winning_positions) = self.check_sequence(starting_position, next_position_fn) {
+            all_winning_positions.extend(winning_positions);
         }
 
-        let winning_positions: HashSet<board::Position> = all_positions.iter().cloned().collect();
-
+        // Convert all the winning positions into a hash set that removes any
+        // duplicate positions. Then various checks are performed to determine the
+        // next state to use for the game:
+        // * If the set contains items then a player managed to win, thus return a state
+        //   for the winner of the game.
+        // * If there are no more free positions left then the game ends in a cats game.
+        // * Otherwise, it is the next player's turn.
+        let winning_positions: HashSet<board::Position> = all_winning_positions.into_iter().collect();
         if !winning_positions.is_empty() {
             match self.board.get(*winning_positions.iter().next().unwrap()).unwrap() {
-                board::Owner::PlayerX => self.state = State::PlayerXWin(winning_positions),
-                board::Owner::PlayerO => self.state = State::PlayerOWin(winning_positions),
-                board::Owner::None => panic!("AHHHHH!"),
+                board::Owner::PlayerX => return State::PlayerXWin(winning_positions),
+                board::Owner::PlayerO => return State::PlayerOWin(winning_positions),
+                board::Owner::None => panic!("The game thinks there should be a winner\
+                    but it cannot determine who won the game. This condition is \
+                    the result of a bug in the open_ttt_lib used by this application."),
             };
         } else if self.board.iter().find(|(_position, owner)| *owner == board::Owner::None).is_none() {
-            // TODO: check for cat's game! AHHHH.
-            self.state = State::CatsGame;
+            return State::CatsGame;
         } else {
-            match self.state {
-                State::PlayerXMove => self.state = State::PlayerOMove,
-                State::PlayerOMove => self.state = State::PlayerXMove,
-                _ =>  panic!("AHHHHH!"),
-            };
+            return Self::next_players_turn(&self.state);
         }
     }
 
-    fn check_sequence(sequence: &mut board::Sequence) -> Option<Vec<board::Position>> {
-        let mut winning_positions = Vec::new();
-        if let Some((initial_position, initial_owner)) = sequence.next() {
-            winning_positions.push(initial_position);
-            for (position, owner) in sequence {
-                if owner == initial_owner  && owner != board::Owner::None {
-                    winning_positions.push(position);
-                }
-                else {
-                    return None;
-                }
-            }
-            return Some(winning_positions);
-        }
-        else{
+    // Helper function for checking a sequence of positions.
+    //
+    // The `starting_position` marks the start of the sequence and the
+    // `next_position_fn` provides the next position to look at based on the
+    // current position.
+    //
+    // If all of the positions have the same owner then a vector of all the
+    // positions is returned. Otherwise, None is returned.
+    fn check_sequence(&self,
+        starting_position: board::Position,
+        next_position_fn: fn(board::Position) -> board::Position)
+        -> Option<Vec<board::Position>>
+    {
+        // Get the owner of the starting position. If the position is outside the
+        // board or there is no owner then there is no point in continuing the search.
+        let initial_owner = self.board.get(starting_position).unwrap_or(board::Owner::None);
+        if initial_owner == board::Owner::None {
             return None;
+        }
+
+        // Loop over the remaining positions to see if they have the same owner
+        // as the initial position. The positions visited thus far are added to
+        // a vector that can be returned if all the owners match.
+        let mut winning_positions = vec![starting_position];
+        let mut position = next_position_fn(starting_position);
+        while let Some(owner) = self.board.get(position) {
+            if owner != initial_owner {
+                return None;
+            }
+
+            winning_positions.push(position);
+            position = next_position_fn(position);
+        }
+
+        Some(winning_positions)
+    }
+
+    // Helper function for getting the state associated with the next player's turn.
+    //
+    // Panics if the game is over as there no next turn to take.
+    fn next_players_turn(current_state: &State) -> State {
+        match current_state {
+            State::PlayerXMove => State::PlayerOMove,
+            State::PlayerOMove => State::PlayerXMove,
+            _ => panic!("Attempting to get the next player's turn but the game \
+                    is over ({:?}). This condition is the result of a bug in the \
+                    open_ttt_lib used by this application.", current_state),
         }
     }
 }
@@ -256,7 +282,7 @@ pub struct InvalidMoveError {
 
 impl fmt::Display for InvalidMoveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        panic!("This function is not implemented!");
+        unimplemented!();
     }
 }
 

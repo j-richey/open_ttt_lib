@@ -113,25 +113,6 @@ impl Board {
         }
     }
 
-    /// Gets an iterator over a custom sequence of positions in the board.
-    ///
-    /// The `starting_position` parameter specifies where to start the sequence
-    /// and the `next_position_fn` yields the next sequence based on the current
-    /// sequence.
-    ///
-    /// The iterator provides tuples containing the position and the owner of the
-    /// position. Iteration stops if the returned position is outside the area of
-    /// the board.
-    pub fn sequence(&self,
-        starting_position: Position,
-        next_position_fn: fn(Position) -> Position) -> Sequence {
-        Sequence {
-            board: &self,
-            position: starting_position,
-            next_position_generator: next_position_fn,
-        }
-    }
-
     // Helper function for displaying boards that writes the separators between rows.
     fn write_row_separator(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for _ in 0..self.size().columns {
@@ -203,30 +184,6 @@ impl Iterator for Iter<'_> {
         if self.position.row > board_size.rows {
             self.position.row = 0;
         }
-
-        next_value
-    }
-}
-
-/// An iterator over a custom sequence of positions in the `Board`.
-pub struct Sequence<'a> {
-    board: &'a Board,
-    position: Position,
-    next_position_generator: fn(Position) -> Position,
-}
-
-impl Iterator for Sequence<'_> {
-    type Item = (Position, Owner);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // Get the owner at the current position.
-        let next_value = match self.board.get(self.position) {
-            Some(owner) => Some((self.position, owner)),
-            None => None,
-        };
-
-        // Get the next position for the sequence.
-        self.position = (self.next_position_generator)(self.position);
 
         next_value
     }
