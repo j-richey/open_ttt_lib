@@ -322,17 +322,14 @@ impl Iterator for FreePositions<'_> {
             return None;
         }
 
-        // Loop over all the positions looking for ones that are not Owned.
-        loop {
-            match self.board_iter.next() {
-                Some((position, owner)) => {
-                    if owner == board::Owner::None {
-                        return Some(position);
-                    }
-                }
-                None => return None,
+        // Iterate over all the positions looking for ones that are not Owned.
+        while let Some((position, owner)) = self.board_iter.next() {
+            if owner == board::Owner::None {
+                return Some(position);
             }
         }
+
+        None
     }
 }
 
