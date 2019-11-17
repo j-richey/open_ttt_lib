@@ -53,12 +53,14 @@ impl Board {
     ///
     /// # Examples
     /// ```
-    /// let board = open_ttt_lib::Board::new(open_ttt_lib::Size { rows: 3, columns: 3 });
+    /// use open_ttt_lib::board;
     ///
-    /// assert_eq!(true, board.contains(open_ttt_lib::Position { row: 2, column: 2 }));
+    /// let board = board::Board::new(board::Size { rows: 3, columns: 3 });
+    ///
+    /// assert_eq!(true, board.contains(board::Position { row: 2, column: 2 }));
     /// // Since the positions are zero indexed, the board does not
     /// // contain the following position.
-    /// assert_eq!(false, board.contains(open_ttt_lib::Position { row: 3, column: 3 }));
+    /// assert_eq!(false, board.contains(board::Position { row: 3, column: 3 }));
     /// ```
     pub fn contains(&self, position: Position) -> bool {
         let size = self.size();
@@ -85,15 +87,17 @@ impl Board {
     ///
     /// # Examples
     /// ```
-    /// let size = open_ttt_lib::Size { rows: 3, columns: 3 };
-    /// let position = open_ttt_lib::Position { row: 2, column: 2 };
-    /// let mut board = open_ttt_lib::Board::new(size);
+    /// use open_ttt_lib::board;
+    ///
+    /// let size = board::Size { rows: 3, columns: 3 };
+    /// let position = board::Position { row: 2, column: 2 };
+    /// let mut board = board::Board::new(size);
     ///
     /// if let Some(owner) = board.get_mut(position) {
-    ///     *owner = open_ttt_lib::Owner::PlayerX;
+    ///     *owner = board::Owner::PlayerX;
     /// }
     ///
-    /// assert_eq!(board.get(position), Some(open_ttt_lib::Owner::PlayerX));
+    /// assert_eq!(board.get(position), Some(board::Owner::PlayerX));
     /// ```
     pub fn get_mut(&mut self, position: Position) -> Option<&mut Owner> {
         if self.contains(position) {
@@ -222,7 +226,9 @@ impl From<(i32, i32)> for Size {
 /// A convenient way to create a position is from a tuple where the first element
 /// is the row and the second element is the column.
 /// ```
-/// let p = open_ttt_lib::Position::from((2, 3));
+/// use open_ttt_lib::board;
+///
+/// let p = board::Position::from((2, 3));
 /// assert_eq!(p.row, 2);
 /// assert_eq!(p.column, 3);
 /// ```
