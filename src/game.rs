@@ -123,7 +123,30 @@ impl Game {
 
     // Helper function that looks for the victory conditions, returning the next
     // state of the game.
+    //
+    // Note: this function should be used after every move to ensure the correct
+    // state of the game is maintained.
     fn calculate_next_state(&self) -> State {
+        let winning_positions = self.find_winning_positions();
+
+        // Various checks are performed to determine the next state to use for the game:
+        // * If the set contains items then a player managed to win, thus return a state
+        //   for the winner of the game.
+        // * If there are no more free positions left then the game ends in a cats game.
+        // * Otherwise, it is the next player's turn.
+        if !winning_positions.is_empty() {
+            self.get_winning_player(winning_positions)
+        } else if self.board.iter().find(|(_position, owner)| *owner == board::Owner::None).is_none() {
+            State::CatsGame
+        } else {
+            Self::next_players_turn(&self.state)
+        }
+    }
+
+    // Helper function that finds the set positions that are satisfying the victory conditions.
+    //
+    // An empty set is returned if there are no winning positions.
+    fn find_winning_positions(&self) -> HashSet<board::Position> {
         let mut all_winning_positions = Vec::new();
 
         // Check for winning a row.
@@ -167,27 +190,7 @@ impl Game {
             all_winning_positions.extend(winning_positions);
         }
 
-        // Convert all the winning positions into a hash set that removes any
-        // duplicate positions. Then various checks are performed to determine the
-        // next state to use for the game:
-        // * If the set contains items then a player managed to win, thus return a state
-        //   for the winner of the game.
-        // * If there are no more free positions left then the game ends in a cats game.
-        // * Otherwise, it is the next player's turn.
-        let winning_positions: HashSet<board::Position> = all_winning_positions.into_iter().collect();
-        if !winning_positions.is_empty() {
-            match self.board.get(*winning_positions.iter().next().unwrap()).unwrap() {
-                board::Owner::PlayerX => return State::PlayerXWin(winning_positions),
-                board::Owner::PlayerO => return State::PlayerOWin(winning_positions),
-                board::Owner::None => panic!("The game thinks there should be a winner\
-                    but it cannot determine who won the game. This condition is \
-                    the result of a bug in the open_ttt_lib used by this application."),
-            };
-        } else if self.board.iter().find(|(_position, owner)| *owner == board::Owner::None).is_none() {
-            return State::CatsGame;
-        } else {
-            return Self::next_players_turn(&self.state);
-        }
+        all_winning_positions.into_iter().collect()
     }
 
     // Helper function for checking a sequence of positions.
@@ -227,6 +230,31 @@ impl Game {
         Some(winning_positions)
     }
 
+    // Gets the state representing winning player based on the set of winning positions.
+    //
+    // The set of winning positions cannot be empty. This function also assumes
+    // the winning positions are all owned by one player.
+    fn get_winning_player(&self, winning_positions: HashSet<board::Position>) -> State {
+        assert!(!winning_positions.is_empty());
+
+        // Get the owner of the winning positions.
+        let winning_owner = self.board.get(*winning_positions.iter().next().unwrap()).unwrap();
+
+        // Debug time assert to ensure all the positions are owned by the same player.
+        // For release builds we simply give the win to the first owner found in the set.
+        debug_assert!(winning_positions.iter().find(|&&x| self.board.get(x).unwrap() != winning_owner).is_none(),
+            "Multiple owners found for positions in the set of winning positions. \
+            This can be caused by not updating the state of the game after every move.");
+
+        match winning_owner {
+            board::Owner::PlayerX => State::PlayerXWin(winning_positions),
+            board::Owner::PlayerO => State::PlayerOWin(winning_positions),
+            board::Owner::None => panic!("The game thinks there should be a winner\
+                but it cannot determine who won the game. This condition is \
+                the result of a bug in the open_ttt_lib used by this application."),
+        }
+    }
+
     // Helper function for getting the state associated with the next player's turn.
     //
     // Panics if the game is over as there no next turn to take.
@@ -238,6 +266,12 @@ impl Game {
                     is over ({:?}). This condition is the result of a bug in the \
                     open_ttt_lib used by this application.", current_state),
         }
+    }
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
