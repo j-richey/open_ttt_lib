@@ -920,5 +920,4 @@ mod tests {
 
         assert_eq!(expected_is_game_over, actual_is_game_over);
     }
-
 }
