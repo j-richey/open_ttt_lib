@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::iter::FromIterator;
 use std::error;
 use std::fmt;
 
@@ -82,23 +81,23 @@ impl Game {
     /// # Errors
     /// An error is returned if the indicated position is already owned or if
     /// the game is over.
-    pub fn do_move(&mut self, position: board::Position) -> Result<State, InvalidMoveError> {
+    pub fn do_move(&mut self, position: board::Position) -> Result<State, Error> {
         // Mark the given position as being owned by the player whose turn its.
         // If we are in one of the game over states, or if the position is
         // already owned, an error is returned.
         let new_owner = match self.state {
             State::PlayerXMove => board::Owner::PlayerX,
             State::PlayerOMove => board::Owner::PlayerO,
-            _ => return Err(InvalidMoveError{ }),
+            _ => return Err(Error::GameOver),
         };
 
         let existing_owner = match self.board.get_mut(position) {
             Some(owner) => owner,
-            None => return Err(InvalidMoveError{ }),
+            None => return Err(Error::InvalidPosition(position)),
         };
 
         if *existing_owner != board::Owner::None {
-            return Err(InvalidMoveError{ });
+            return Err(Error::PositionAlreadyOwned(position, *existing_owner));
         }
 
         *existing_owner = new_owner;
@@ -273,22 +272,40 @@ impl Iterator for FreePositions<'_> {
 }
 
 
-/// Error used when an invalid move is attempted.
+/// Holds all the errors that can be reported by this module.
+///
+/// This type implements the Display trait for producing English error messages
+/// aimed at application developers.
 #[derive(Debug)]
-pub struct InvalidMoveError {
-    // TODO: Perhaps the current state of the game and the square at the
-    // position of the move in question?
+pub enum Error {
+    /// Error used when a player requests a move but game is over.
+    GameOver,
+    /// Error used when a player tries to move to a position position is already
+    /// owned by a different player. The current owner of the position is provided.
+    PositionAlreadyOwned(board::Position, board::Owner),
+    /// Error used when the position is outside the board's area. The invalid
+    /// position is provided.
+    InvalidPosition(board::Position),
 }
 
-impl fmt::Display for InvalidMoveError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unimplemented!();
+        match *self {
+            Error::GameOver => write!(f, "The game is over so no more moves can \
+                be performed. Use start_next_game() to start the next game."),
+            Error::PositionAlreadyOwned(position, owner) => write!(f,
+                "The square at {:?} is already owned by {:?}. Once a square is \
+                owned by a player it cannot be used by a different player. Use \
+                free_positions() to get available positions that can be used.",
+                position, owner),
+            Error::InvalidPosition(position) => write!(f,
+                "The position {:?} is outside the area of the board. Please use \
+                a valid position contained by the board.", position),
+        }
     }
 }
 
-impl error::Error for InvalidMoveError {
-
-}
+impl error::Error for Error { }
 
 
 /// Indicates the state of the game.
@@ -461,11 +478,33 @@ mod tests {
         assert_eq!(expected_can_move, actual_can_move);
     }
 
+   #[test]
+    fn game_do_move_returned_state_should_match_game_state() {
+        let mut game = Game::new();
+        game.state = State::PlayerXMove;
+
+        let returned_state = game.do_move(board::Position{ row: 0, column: 0 }).unwrap();
+        let game_state = game.state();
+
+        assert_eq!(returned_state, game_state);
+    }
+
     #[test]
-    fn game_do_move_when_free_position_and_not_game_over_should_return_next_player_move_state() {
+    fn game_do_move_when_player_X_move_should_return_player_O_move_state() {
         let mut game = Game::new();
         game.state = State::PlayerXMove;
         let expected_state = State::PlayerOMove;
+
+        let actual_state = game.do_move(board::Position{ row: 0, column: 0 }).unwrap();
+
+        assert_eq!(expected_state, actual_state);
+    }
+
+    #[test]
+    fn game_do_move_when_player_O_move_should_return_player_X_move_state() {
+        let mut game = Game::new();
+        game.state = State::PlayerOMove;
+        let expected_state = State::PlayerXMove;
 
         let actual_state = game.do_move(board::Position{ row: 0, column: 0 }).unwrap();
 
@@ -526,7 +565,8 @@ mod tests {
         // Do the final move to get three X's in a row.
         let actual_state = game.do_move(winning_position).unwrap();
 
-        assert_eq!(expected_state, actual_state);
+        assert_eq!(expected_state, actual_state,
+            "\nGame board used for this test: \n{}", game.board());
     }
 
     #[test]
@@ -548,7 +588,8 @@ mod tests {
         // Do the final move to get three X's in a column.
         let actual_state = game.do_move(winning_position).unwrap();
 
-        assert_eq!(expected_state, actual_state);
+        assert_eq!(expected_state, actual_state,
+            "\nGame board used for this test: \n{}", game.board());
     }
 
     #[test]
@@ -570,7 +611,8 @@ mod tests {
         // Do the final move to get three X's in a diagonal.
         let actual_state = game.do_move(winning_position).unwrap();
 
-        assert_eq!(expected_state, actual_state);
+        assert_eq!(expected_state, actual_state,
+            "\nGame board used for this test: \n{}", game.board());
     }
 
     #[test]
@@ -592,7 +634,8 @@ mod tests {
         // Do the final move to get three X's in a diagonal.
         let actual_state = game.do_move(winning_position).unwrap();
 
-        assert_eq!(expected_state, actual_state, "Board is: \n{}", game.board());
+        assert_eq!(expected_state, actual_state,
+            "\nGame board used for this test: \n{}", game.board());
     }
 
     #[test]
@@ -616,7 +659,8 @@ mod tests {
         // Do the final move to get three X's in a diagonal.
         let actual_state = game.do_move(winning_position).unwrap();
 
-        assert_eq!(expected_state, actual_state);
+        assert_eq!(expected_state, actual_state,
+            "\nGame board used for this test: \n{}", game.board());
     }
 
     // We test at lease one of the victory conditions with player O to ensure
@@ -640,7 +684,8 @@ mod tests {
         // Do the final move to get three O's in a row.
         let actual_state = game.do_move(winning_position).unwrap();
 
-        assert_eq!(expected_state, actual_state);
+        assert_eq!(expected_state, actual_state,
+            "\nGame board used for this test: \n{}", game.board());
     }
 
     #[test]
@@ -676,7 +721,8 @@ mod tests {
         // Fill the final position so there are no more moves.
         let actual_state = game.do_move(last_position).unwrap();
 
-        assert_eq!(expected_state, actual_state);
+        assert_eq!(expected_state, actual_state,
+            "\nGame board used for this test: \n{}", game.board());
     }
 
     #[test]
