@@ -477,7 +477,7 @@ mod tests {
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
 
-        assert!(textual_representation.contains("X"));
+        assert!(textual_representation.contains('X'));
     }
 
     #[allow(non_snake_case)]
@@ -490,7 +490,7 @@ mod tests {
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
 
-        assert!(textual_representation.contains("O"));
+        assert!(textual_representation.contains('O'));
     }
 
     #[test]

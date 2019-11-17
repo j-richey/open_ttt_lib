@@ -3,6 +3,9 @@ rust:
   - stable
   - beta
   - nightly
+before_script:
+  - rustup component add clippy
+  - rustup component add rustfmt
 jobs:
   allow_failures:
     - rust: nightly
@@ -14,3 +17,5 @@ os:
 script:
   - RUSTFLAGS="-D warnings" cargo build --verbose
   - cargo test --verbose
+  - cargo clippy -- -D warnings
+  - cargo fmt --all -- --check
