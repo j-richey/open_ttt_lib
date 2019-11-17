@@ -7,19 +7,23 @@ pub struct Board {
 }
 
 impl Board {
-
     /// Constructs a new board of the given size.
     ///
     /// # Panics
     /// The minimum board size is 1x1. Panics if either the number of rows or
     /// columns is less than one.
     pub fn new(size: Size) -> Board {
-        const MIN_BOARD_SIZE: Size = Size{ rows: 1, columns: 1 };
+        const MIN_BOARD_SIZE: Size = Size {
+            rows: 1,
+            columns: 1,
+        };
 
         // Validate the provided board size.
         if size.rows < MIN_BOARD_SIZE.rows || size.columns < MIN_BOARD_SIZE.columns {
-            panic!("Invalid board size of '{:?}' provided. The minium board size is '{:?}'",
-                size, MIN_BOARD_SIZE);
+            panic!(
+                "Invalid board size of '{:?}' provided. The minium board size is '{:?}'",
+                size, MIN_BOARD_SIZE
+            );
         }
 
         let mut squares: Vec<Vec<Owner>> = Vec::new();
@@ -31,7 +35,7 @@ impl Board {
             squares.push(row);
         }
 
-        Board { squares, }
+        Board { squares }
     }
 
     /// Gets the size of the board.
@@ -44,7 +48,7 @@ impl Board {
             None => 0,
         };
 
-        Size{ rows, columns }
+        Size { rows, columns }
     }
 
     /// Returns `true` if the board contains the given position.
@@ -65,8 +69,10 @@ impl Board {
     pub fn contains(&self, position: Position) -> bool {
         let size = self.size();
 
-        position.row >= 0 && position.row < size.rows
-        && position.column >=0 && position.column < size.columns
+        position.row >= 0
+            && position.row < size.rows
+            && position.column >= 0
+            && position.column < size.columns
     }
 
     /// Returns a copy of the owner at the indicated position or `None`
@@ -114,7 +120,7 @@ impl Board {
     pub fn iter(&self) -> Iter {
         Iter {
             board: &self,
-            position: Position{ row: 0, column: 0 },
+            position: Position { row: 0, column: 0 },
         }
     }
 
@@ -156,7 +162,6 @@ impl fmt::Display for Board {
     }
 }
 
-
 /// An iterator over the squares in a `Board`.
 pub struct Iter<'a> {
     board: &'a Board,
@@ -194,7 +199,6 @@ impl Iterator for Iter<'_> {
     }
 }
 
-
 /// Represents the size of the board in number of rows and columns.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Size {
@@ -206,7 +210,6 @@ pub struct Size {
 }
 
 impl From<(i32, i32)> for Size {
-
     /// Creates a Size structure from the given tuple.
     #[inline]
     fn from(value: (i32, i32)) -> Size {
@@ -216,7 +219,6 @@ impl From<(i32, i32)> for Size {
         }
     }
 }
-
 
 /// Represents a specific board position denoted by row and column.
 ///
@@ -242,7 +244,6 @@ pub struct Position {
 }
 
 impl From<(i32, i32)> for Position {
-
     /// Creates a Position structure from the given tuple.
     #[inline]
     fn from(value: (i32, i32)) -> Position {
@@ -252,7 +253,6 @@ impl From<(i32, i32)> for Position {
         }
     }
 }
-
 
 /// Indicates which player owns a position, if any.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -273,7 +273,6 @@ impl Default for Owner {
     }
 }
 
-
 // This module contains the tests for the types in this file.
 //
 // The test naming format is:
@@ -285,7 +284,10 @@ mod tests {
 
     #[test]
     fn board_new_when_given_1x1_size_should_create_1x1_board() {
-        let expected_size = Size{ rows: 1, columns: 1, };
+        let expected_size = Size {
+            rows: 1,
+            columns: 1,
+        };
 
         let board = Board::new(expected_size);
         let actual_size = board.size();
@@ -295,8 +297,11 @@ mod tests {
 
     #[test]
     fn board_new_should_contain_squares_with_no_owner() {
-        let size = Size{ rows: 1, columns: 1, };
-        let position = Position {row: 0, column: 0 };
+        let size = Size {
+            rows: 1,
+            columns: 1,
+        };
+        let position = Position { row: 0, column: 0 };
         let expected_owner = Owner::None;
 
         let board = Board::new(size);
@@ -307,7 +312,10 @@ mod tests {
 
     #[test]
     fn board_new_when_given_3x3_size_should_create_3x3_board() {
-        let expected_size = Size{ rows: 3, columns: 3, };
+        let expected_size = Size {
+            rows: 3,
+            columns: 3,
+        };
 
         let board = Board::new(expected_size);
         let actual_size = board.size();
@@ -317,7 +325,10 @@ mod tests {
 
     #[test]
     fn board_new_when_given_1x3_size_should_create_1x3_board() {
-        let expected_size = Size{ rows: 1, columns: 3, };
+        let expected_size = Size {
+            rows: 1,
+            columns: 3,
+        };
 
         let board = Board::new(expected_size);
         let actual_size = board.size();
@@ -349,7 +360,10 @@ mod tests {
 
     #[test]
     fn board_contains_when_includes_position_should_be_true() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position_in_board = Position { row: 0, column: 0 };
 
         let actual = board.contains(position_in_board);
@@ -359,7 +373,10 @@ mod tests {
 
     #[test]
     fn board_contains_when_row_outside_board_should_be_false() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position_not_in_board = Position { row: 1, column: 0 };
 
         let actual = board.contains(position_not_in_board);
@@ -369,7 +386,10 @@ mod tests {
 
     #[test]
     fn board_contains_when_column_outside_board_should_be_false() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position_not_in_board = Position { row: 0, column: 1 };
 
         let actual = board.contains(position_not_in_board);
@@ -379,7 +399,10 @@ mod tests {
 
     #[test]
     fn board_contains_when_negative_row_should_be_false() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position_not_in_board = Position { row: -1, column: 0 };
 
         let actual = board.contains(position_not_in_board);
@@ -389,7 +412,10 @@ mod tests {
 
     #[test]
     fn board_contains_when_negative_column_should_be_false() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position_not_in_board = Position { row: 0, column: -1 };
 
         let actual = board.contains(position_not_in_board);
@@ -399,7 +425,10 @@ mod tests {
 
     #[test]
     fn board_get_when_contains_position_should_be_some_owner() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position = Position { row: 0, column: 0 };
         // Note that for new boards positions start with no owner.
         let expected = Some(Owner::None);
@@ -411,7 +440,10 @@ mod tests {
 
     #[test]
     fn board_get_when_not_contains_position_should_be_none() {
-        let board = Board::new(Size { rows: 1, columns: 1 });
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position_not_in_board = Position { row: 1, column: 0 };
         let expected = None;
 
@@ -422,7 +454,10 @@ mod tests {
 
     #[test]
     fn board_get_mut_when_given_new_owner_should_change_owner() {
-        let mut board = Board::new(Size { rows: 1, columns: 1 });
+        let mut board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position = Position { row: 0, column: 0 };
         let expected_owner = Owner::PlayerX;
 
@@ -434,7 +469,10 @@ mod tests {
 
     #[test]
     fn board_get_mut_when_given_position_outside_board_should_return_none() {
-        let mut board = Board::new(Size { rows: 1, columns: 1 });
+        let mut board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position_outside_board = Position { row: 1, column: 0 };
         let expected = None;
 
@@ -449,7 +487,7 @@ mod tests {
         // items seen by the iter compared to the expected value.
         let rows = 1;
         let columns = 1;
-        let board = Board::new(Size { rows, columns, });
+        let board = Board::new(Size { rows, columns });
         let expected = rows * columns;
 
         let actual = board.iter().count() as i32;
@@ -459,8 +497,11 @@ mod tests {
 
     #[test]
     fn board_iter_should_provide_position_and_owner() {
-        let board = Board::new(Size { rows: 1, columns: 1, });
-        let expected = (Position { row: 0, column: 0 }, Owner::None );
+        let board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
+        let expected = (Position { row: 0, column: 0 }, Owner::None);
 
         let actual = board.iter().next().unwrap();
 
@@ -470,41 +511,41 @@ mod tests {
     #[allow(non_snake_case)]
     #[test]
     fn board_display_when_X_own_squares_should_contain_X_characters() {
-        let mut board = Board::new(Size { rows: 1, columns: 1, });
+        let mut board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position = Position { row: 0, column: 0 };
         *board.get_mut(position).unwrap() = Owner::PlayerX;
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
 
-        assert!(textual_representation.contains("X"));
+        assert!(textual_representation.contains('X'));
     }
 
     #[allow(non_snake_case)]
     #[test]
     fn board_display_when_O_own_squares_should_contain_O_characters() {
-        let mut board = Board::new(Size { rows: 1, columns: 1, });
+        let mut board = Board::new(Size {
+            rows: 1,
+            columns: 1,
+        });
         let position = Position { row: 0, column: 0 };
         *board.get_mut(position).unwrap() = Owner::PlayerO;
 
         // Rust's to_string() method uses the display method.
         let textual_representation = board.to_string();
 
-        assert!(textual_representation.contains("O"));
+        assert!(textual_representation.contains('O'));
     }
 
     #[test]
     fn size_when_same_should_compare_equal() {
         let rows = 0;
         let columns = 0;
-        let a = Size {
-            rows,
-            columns,
-        };
-        let b = Size {
-            rows,
-            columns,
-        };
+        let a = Size { rows, columns };
+        let b = Size { rows, columns };
 
         assert_eq!(a, b);
     }
@@ -554,19 +595,12 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-
     #[test]
     fn position_when_same_should_compare_equal() {
         let row = 0;
         let column = 0;
-        let a = Position {
-            row,
-            column,
-        };
-        let b = Position {
-            row,
-            column,
-        };
+        let a = Position { row, column };
+        let b = Position { row, column };
 
         assert_eq!(a, b);
     }
@@ -593,10 +627,7 @@ mod tests {
 
     #[test]
     fn position_when_copied_should_compare_equal() {
-        let expected = Position {
-            row: 1,
-            column: 2,
-        };
+        let expected = Position { row: 1, column: 2 };
 
         // Perform a copy.
         let actual = expected;
@@ -606,10 +637,7 @@ mod tests {
 
     #[test]
     fn position_when_cloned_should_compare_equal() {
-        let expected = Position {
-            row: 1,
-            column: 2,
-        };
+        let expected = Position { row: 1, column: 2 };
 
         let actual = expected.clone();
 
