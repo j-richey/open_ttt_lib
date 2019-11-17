@@ -26,7 +26,7 @@ impl Board {
         for _ in 0..size.rows {
             let mut row: Vec<Owner> = Vec::new();
             for _ in 0..size.columns {
-                row.push(Owner::None);
+                row.push(Owner::default());
             }
             squares.push(row);
         }
@@ -36,11 +36,11 @@ impl Board {
 
     /// Gets the size of the board.
     pub fn size(&self) -> Size {
-        let rows = self.squares.len();
+        let rows = self.squares.len() as i32;
 
         // The length of the first row happens to be the number of columns.
         let columns = match self.squares.get(0) {
-            Some(row) => row.len(),
+            Some(row) => row.len() as i32,
             None => 0,
         };
 
@@ -53,24 +53,27 @@ impl Board {
     ///
     /// # Examples
     /// ```
-    /// let board = open_ttt_lib::Board::new(open_ttt_lib::Size { rows: 3, columns: 3 });
+    /// use open_ttt_lib::board;
     ///
-    /// assert_eq!(true, board.contains(open_ttt_lib::Position { row: 2, column: 2 }));
+    /// let board = board::Board::new(board::Size { rows: 3, columns: 3 });
+    ///
+    /// assert_eq!(true, board.contains(board::Position { row: 2, column: 2 }));
     /// // Since the positions are zero indexed, the board does not
     /// // contain the following position.
-    /// assert_eq!(false, board.contains(open_ttt_lib::Position { row: 3, column: 3 }));
+    /// assert_eq!(false, board.contains(board::Position { row: 3, column: 3 }));
     /// ```
     pub fn contains(&self, position: Position) -> bool {
         let size = self.size();
 
-        position.row < size.rows && position.column < size.columns
+        position.row >= 0 && position.row < size.rows
+        && position.column >=0 && position.column < size.columns
     }
 
     /// Returns a copy of the owner at the indicated position or `None`
     /// if the board does not contain the provided position.
     pub fn get(&self, position: Position) -> Option<Owner> {
         if self.contains(position) {
-            let owner = self.squares[position.row][position.column];
+            let owner = self.squares[position.row as usize][position.column as usize];
             Some(owner)
         } else {
             None
@@ -84,19 +87,21 @@ impl Board {
     ///
     /// # Examples
     /// ```
-    /// let size = open_ttt_lib::Size { rows: 3, columns: 3 };
-    /// let position = open_ttt_lib::Position { row: 2, column: 2 };
-    /// let mut board = open_ttt_lib::Board::new(size);
+    /// use open_ttt_lib::board;
+    ///
+    /// let size = board::Size { rows: 3, columns: 3 };
+    /// let position = board::Position { row: 2, column: 2 };
+    /// let mut board = board::Board::new(size);
     ///
     /// if let Some(owner) = board.get_mut(position) {
-    ///     *owner = open_ttt_lib::Owner::PlayerX;
+    ///     *owner = board::Owner::PlayerX;
     /// }
     ///
-    /// assert_eq!(board.get(position), Some(open_ttt_lib::Owner::PlayerX));
+    /// assert_eq!(board.get(position), Some(board::Owner::PlayerX));
     /// ```
     pub fn get_mut(&mut self, position: Position) -> Option<&mut Owner> {
         if self.contains(position) {
-            self.squares[position.row].get_mut(position.column)
+            self.squares[position.row as usize].get_mut(position.column as usize)
         } else {
             None
         }
@@ -152,7 +157,7 @@ impl fmt::Display for Board {
 }
 
 
-/// An iterator over all the positions in a `Board`.
+/// An iterator over the squares in a `Board`.
 pub struct Iter<'a> {
     board: &'a Board,
     position: Position,
@@ -189,21 +194,22 @@ impl Iterator for Iter<'_> {
     }
 }
 
+
 /// Represents the size of the board in number of rows and columns.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Size {
     /// The number of rows.
-    pub rows: usize,
+    pub rows: i32,
 
     /// The number of columns.
-    pub columns: usize,
+    pub columns: i32,
 }
 
-impl From<(usize, usize)> for Size {
+impl From<(i32, i32)> for Size {
 
     /// Creates a Size structure from the given tuple.
     #[inline]
-    fn from(value: (usize, usize)) -> Size {
+    fn from(value: (i32, i32)) -> Size {
         Size {
             rows: value.0,
             columns: value.1,
@@ -220,24 +226,26 @@ impl From<(usize, usize)> for Size {
 /// A convenient way to create a position is from a tuple where the first element
 /// is the row and the second element is the column.
 /// ```
-/// let p = open_ttt_lib::Position::from((2, 3));
+/// use open_ttt_lib::board;
+///
+/// let p = board::Position::from((2, 3));
 /// assert_eq!(p.row, 2);
 /// assert_eq!(p.column, 3);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Position {
     /// The row associated with the position.
-    pub row: usize,
+    pub row: i32,
 
     /// The column associated with the position.
-    pub column: usize,
+    pub column: i32,
 }
 
-impl From<(usize, usize)> for Position {
+impl From<(i32, i32)> for Position {
 
     /// Creates a Position structure from the given tuple.
     #[inline]
-    fn from(value: (usize, usize)) -> Position {
+    fn from(value: (i32, i32)) -> Position {
         Position {
             row: value.0,
             column: value.1,
@@ -257,6 +265,12 @@ pub enum Owner {
 
     /// No player owns the position.
     None,
+}
+
+impl Default for Owner {
+    fn default() -> Self {
+        Owner::None
+    }
 }
 
 
@@ -344,9 +358,39 @@ mod tests {
     }
 
     #[test]
-    fn board_contains_when_excludes_position_should_be_false() {
+    fn board_contains_when_row_outside_board_should_be_false() {
         let board = Board::new(Size { rows: 1, columns: 1 });
         let position_not_in_board = Position { row: 1, column: 0 };
+
+        let actual = board.contains(position_not_in_board);
+
+        assert_eq!(false, actual);
+    }
+
+    #[test]
+    fn board_contains_when_column_outside_board_should_be_false() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_not_in_board = Position { row: 0, column: 1 };
+
+        let actual = board.contains(position_not_in_board);
+
+        assert_eq!(false, actual);
+    }
+
+    #[test]
+    fn board_contains_when_negative_row_should_be_false() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_not_in_board = Position { row: -1, column: 0 };
+
+        let actual = board.contains(position_not_in_board);
+
+        assert_eq!(false, actual);
+    }
+
+    #[test]
+    fn board_contains_when_negative_column_should_be_false() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_not_in_board = Position { row: 0, column: -1 };
 
         let actual = board.contains(position_not_in_board);
 
@@ -408,7 +452,7 @@ mod tests {
         let board = Board::new(Size { rows, columns, });
         let expected = rows * columns;
 
-        let actual = board.iter().count();
+        let actual = board.iter().count() as i32;
 
         assert_eq!(expected, actual);
     }
