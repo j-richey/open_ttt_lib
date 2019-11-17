@@ -36,11 +36,11 @@ impl Board {
 
     /// Gets the size of the board.
     pub fn size(&self) -> Size {
-        let rows = self.squares.len();
+        let rows = self.squares.len() as i32;
 
         // The length of the first row happens to be the number of columns.
         let columns = match self.squares.get(0) {
-            Some(row) => row.len(),
+            Some(row) => row.len() as i32,
             None => 0,
         };
 
@@ -63,14 +63,15 @@ impl Board {
     pub fn contains(&self, position: Position) -> bool {
         let size = self.size();
 
-        position.row < size.rows && position.column < size.columns
+        position.row >= 0 && position.row < size.rows
+        && position.column >=0 && position.column < size.columns
     }
 
     /// Returns a copy of the owner at the indicated position or `None`
     /// if the board does not contain the provided position.
     pub fn get(&self, position: Position) -> Option<Owner> {
         if self.contains(position) {
-            let owner = self.squares[position.row][position.column];
+            let owner = self.squares[position.row as usize][position.column as usize];
             Some(owner)
         } else {
             None
@@ -96,7 +97,7 @@ impl Board {
     /// ```
     pub fn get_mut(&mut self, position: Position) -> Option<&mut Owner> {
         if self.contains(position) {
-            self.squares[position.row].get_mut(position.column)
+            self.squares[position.row as usize].get_mut(position.column as usize)
         } else {
             None
         }
@@ -194,17 +195,17 @@ impl Iterator for Iter<'_> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Size {
     /// The number of rows.
-    pub rows: usize,
+    pub rows: i32,
 
     /// The number of columns.
-    pub columns: usize,
+    pub columns: i32,
 }
 
-impl From<(usize, usize)> for Size {
+impl From<(i32, i32)> for Size {
 
     /// Creates a Size structure from the given tuple.
     #[inline]
-    fn from(value: (usize, usize)) -> Size {
+    fn from(value: (i32, i32)) -> Size {
         Size {
             rows: value.0,
             columns: value.1,
@@ -228,17 +229,17 @@ impl From<(usize, usize)> for Size {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Position {
     /// The row associated with the position.
-    pub row: usize,
+    pub row: i32,
 
     /// The column associated with the position.
-    pub column: usize,
+    pub column: i32,
 }
 
-impl From<(usize, usize)> for Position {
+impl From<(i32, i32)> for Position {
 
     /// Creates a Position structure from the given tuple.
     #[inline]
-    fn from(value: (usize, usize)) -> Position {
+    fn from(value: (i32, i32)) -> Position {
         Position {
             row: value.0,
             column: value.1,
@@ -351,9 +352,39 @@ mod tests {
     }
 
     #[test]
-    fn board_contains_when_excludes_position_should_be_false() {
+    fn board_contains_when_row_outside_board_should_be_false() {
         let board = Board::new(Size { rows: 1, columns: 1 });
         let position_not_in_board = Position { row: 1, column: 0 };
+
+        let actual = board.contains(position_not_in_board);
+
+        assert_eq!(false, actual);
+    }
+
+    #[test]
+    fn board_contains_when_column_outside_board_should_be_false() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_not_in_board = Position { row: 0, column: 1 };
+
+        let actual = board.contains(position_not_in_board);
+
+        assert_eq!(false, actual);
+    }
+
+    #[test]
+    fn board_contains_when_negative_row_should_be_false() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_not_in_board = Position { row: -1, column: 0 };
+
+        let actual = board.contains(position_not_in_board);
+
+        assert_eq!(false, actual);
+    }
+
+    #[test]
+    fn board_contains_when_negative_column_should_be_false() {
+        let board = Board::new(Size { rows: 1, columns: 1 });
+        let position_not_in_board = Position { row: 0, column: -1 };
 
         let actual = board.contains(position_not_in_board);
 
@@ -415,7 +446,7 @@ mod tests {
         let board = Board::new(Size { rows, columns, });
         let expected = rows * columns;
 
-        let actual = board.iter().count();
+        let actual = board.iter().count() as i32;
 
         assert_eq!(expected, actual);
     }

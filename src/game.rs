@@ -175,17 +175,8 @@ impl Game {
         }
 
         // Check for top right to bottom left.
-        // Note: because positions currently use unsigned values we have to guard
-        // from going negative and use a position that is known to be outside the board.
         let starting_position = board::Position{ row: 0, column: 2 };
-        let next_position_fn = |x: board::Position| {
-            let last_position = board::Position{ row: 2, column: 0 };
-            if x != last_position {
-                board::Position{ row: x.row + 1, column: x.column - 1 }
-            } else {
-                board::Position{ row: BOARD_SIZE.rows, column: BOARD_SIZE.columns }
-            }
-        };
+        let next_position_fn = |x: board::Position| board::Position{ row: x.row + 1, column: x.column - 1 };
         if let Some(winning_positions) = self.check_sequence(starting_position, next_position_fn) {
             all_winning_positions.extend(winning_positions);
         }
@@ -431,7 +422,7 @@ mod tests {
 
         let actual_free_squares = game.free_positions().count();
 
-        assert_eq!(expected_free_squares, actual_free_squares);
+        assert_eq!(expected_free_squares as usize, actual_free_squares);
     }
 
     #[test]
@@ -503,7 +494,7 @@ mod tests {
 
     #[test]
     fn game_can_move_when_outside_game_board_should_be_false() {
-        let position_outside_game_board = board::Position{ row: 1000, column: 1000, };
+        let position_outside_game_board = board::Position{ row: -1, column: -1, };
         let game = Game::new();
         let expected_can_move = false;
 
