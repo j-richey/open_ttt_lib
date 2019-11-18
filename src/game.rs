@@ -1,8 +1,52 @@
+//! Provides game logic and state management.
+//!
+//! # Examples
+//! ```
+//! # use open_ttt_lib::game;
+//! # fn main() -> Result<(), Box<game::Error>> {
+//! use open_ttt_lib::game;
+//!
+//! // Make a new game.
+//! let mut game = game::Game::new();
+//!
+//! // Mark a position as owned.
+//! let p = game::Position{ row: 0, column: 0 };
+//! game.do_move(p)?;
+//!
+//! // Once a position is owned, its owner cannot be changed.
+//! assert!(!game.can_move(p));
+//! // Trying to move into that position causes an error to be returned.
+//! assert!(game.do_move(p).is_err());
+//!
+//! // Get the state of the game to see who's turn it is or if the game is over.
+//! match game.state() {
+//!     game::State::PlayerXMove => println!("X's turn."),
+//!     game::State::PlayerOMove => println!("O's turn."),
+//!     game::State::PlayerXWin(_) => println!("Game Over: X wins!"),
+//!     game::State::PlayerOWin(_) => println!("Game Over: O wins!"),
+//!     game::State::CatsGame => println!("Game Over: cat's game."),
+//! };
+//!
+//! // Display or render the game's the board.
+//! println!("{}", game.board());
+//!
+//! // Keep doing moves until the game is over...
+//! game.do_move(game::Position{ row: 0, column: 1 })?;
+//!
+//! // To ensure each player gets to take the first turn use
+//! // start_next_game() instead of making a new game with new().
+//! game.start_next_game();
+//! #
+//! # Ok(())
+//! # }
+//! ```
+
 use std::collections::HashSet;
 use std::error;
 use std::fmt;
 
 use crate::board;
+pub use crate::board::Position;
 
 // The size of a Tic Tac Toe board
 const BOARD_SIZE: board::Size = board::Size {
@@ -15,6 +59,34 @@ const BOARD_SIZE: board::Size = board::Size {
 /// This structure is one of the central types provided by the library. It
 /// contains the state machine logic, holds the underlying game board, and
 /// enforces the rules of Tic Tac Toe.
+///
+/// # Examples
+/// ```
+/// # use open_ttt_lib::game;
+/// # fn main() -> Result<(), Box<game::Error>> {
+/// use open_ttt_lib::game;
+///
+/// // Make a new game.
+/// let mut game = game::Game::new();
+/// assert!(!game.state().is_game_over());
+///
+/// // Mark a position as owned.
+/// let p = game::Position{ row: 0, column: 0 };
+/// assert!(game.can_move(p));
+/// game.do_move(p)?;
+///
+/// // Once a position is owned, its owner cannot be changed.
+/// assert!(!game.can_move(p));
+/// // Trying to move into that position causes an error to be returned.
+/// assert!(game.do_move(p).is_err());
+///
+/// // To ensure each player gets to take the first turn use
+/// // start_next_game() instead of making a new game.
+/// game.start_next_game();
+/// #
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone)]
 pub struct Game {
     board: board::Board,
@@ -26,8 +98,15 @@ pub struct Game {
 impl Game {
     /// Creates a new Tic Tac Toe game structure.
     ///
-    /// **Note:** use `start_next_game()` for playing consecutive games to ensure
-    /// each player gets to start the game.
+    /// **Note:** use `start_next_game()` for playing consecutive games to
+    /// ensure each player gets to start the game.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::game;
+    ///
+    /// let mut game = game::Game::new();
+    /// ```
     pub fn new() -> Self {
         let board = board::Board::new(BOARD_SIZE);
         let state = State::PlayerXMove;
@@ -41,11 +120,43 @@ impl Game {
     }
 
     /// Gets the board associated with the game.
+    ///
+    /// Access to the board is useful for providing to your display
+    /// or render function.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::{board, game};
+    ///
+    /// let mut game = game::Game::new();
+    ///
+    /// display(game.board());
+    ///
+    /// fn display(board: &board::Board) {
+    ///     // Display or render a representation of the board.
+    ///     println!("{}", board);
+    /// }
+    /// ```
     pub fn board(&self) -> &board::Board {
         &self.board
     }
 
     /// Gets the current state of the game.
+    ///
+    /// # Example
+    /// ```
+    /// use open_ttt_lib::game;
+    ///
+    /// let mut game = game::Game::new();
+    ///
+    /// match game.state() {
+    ///     game::State::PlayerXMove => println!("X's turn."),
+    ///     game::State::PlayerOMove => println!("O's turn."),
+    ///     game::State::PlayerXWin(_) => println!("Game Over: X wins!"),
+    ///     game::State::PlayerOWin(_) => println!("Game Over: O wins!"),
+    ///     game::State::CatsGame => println!("Game Over: cat's game."),
+    /// };
+    /// ```
     pub fn state(&self) -> State {
         self.state.clone()
     }
@@ -54,6 +165,16 @@ impl Game {
     /// thus can be provided to `do_move()`.
     ///
     /// When the game is over there are no free positions.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::game;
+    ///
+    /// let mut game = game::Game::new();
+    ///
+    /// let num_free_positions = game.free_positions().count();
+    /// println!("There are {} available positions.", num_free_positions);
+    /// ```
     pub fn free_positions(&self) -> FreePositions {
         FreePositions {
             board_iter: self.board.iter(),
@@ -64,8 +185,28 @@ impl Game {
     /// Indicates if the square at the indicated position can be marked as owned.
     ///
     /// That is, if `can_move()` returns true then `do_move()` is guaranteed to
-    /// not return an error. False is returned if the position is owned, if the
+    /// not return an error. `False` is returned if the position is owned, if the
     /// game is over, or if the position is outside the area of the board.
+    ///
+    /// # Examples
+    /// ```
+    /// # use open_ttt_lib::game;
+    /// # fn main() -> Result<(), Box<game::Error>> {
+    /// use open_ttt_lib::game;
+    ///
+    /// let mut game = game::Game::new();
+    /// let p = game::Position{ row: 0, column: 0 };
+    ///
+    /// // For a new game all of the positions are available.
+    /// assert!(game.can_move(p));
+    ///
+    /// // However, Once a position is owned, its owner cannot be changed.
+    /// game.do_move(p)?;
+    /// assert!(!game.can_move(p));
+    /// #
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn can_move(&self, position: board::Position) -> bool {
         // If the game is over or if the position is outside the board area the
         // a move cannot be performed. Otherwise, a move can be performed if
@@ -85,6 +226,18 @@ impl Game {
     /// # Errors
     /// An error is returned if the indicated position is already owned or if
     /// the game is over.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::game;
+    ///
+    /// let mut game = game::Game::new();
+    ///
+    /// match game.do_move(game::Position{ row: 0, column: 0 }) {
+    ///     Ok(new_state) => assert_eq!(game.state(), new_state),
+    ///     Err(error) => println!("{}", error),
+    /// };
+    /// ```
     pub fn do_move(&mut self, position: board::Position) -> Result<State, Error> {
         // Mark the given position as being owned by the player whose turn its.
         // If we are in one of the game over states, or if the position is
@@ -114,6 +267,26 @@ impl Game {
 
     /// Starts the next game by resetting the state machine ensuring the player
     /// who went second last game goes first next game.
+    ///
+    /// Use of this function is preferred over making a new game with `new()`.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::game;
+    ///
+    /// let mut game = game::Game::new();
+    /// let first_player_last_game = game.state();
+    ///
+    /// // Play partial or complete game...
+    ///
+    /// // Start the next game.
+    /// game.start_next_game();
+    ///
+    /// // The player to start the next game is not the
+    /// // player that started last game.
+    /// assert_ne!(game.state(), first_player_last_game);
+    /// assert!(!game.state().is_game_over());
+    /// ```
     pub fn start_next_game(&mut self) -> State {
         // Make a new board thus clearing out all existing positions.
         self.board = board::Board::new(BOARD_SIZE);
@@ -302,6 +475,7 @@ impl Game {
 }
 
 impl Default for Game {
+    /// Provides a default game.
     fn default() -> Self {
         Self::new()
     }
@@ -378,7 +552,7 @@ impl error::Error for Error {}
 
 /// Indicates the state of the game.
 ///
-/// The set of positions provided to PlayerXWin and PlayerOWin contain all the
+/// The set of positions provided to `PlayerXWin` and `PlayerOWin` contain all the
 /// positions that contributed to the victory. Usually, this will be positions
 /// representing a row, column, or diagonal. However, there are some situations
 /// where more than one row, column, or diagonal contributed to a victory.
@@ -407,6 +581,14 @@ impl State {
     ///
     /// If either player has won or it is a cat's game then `true` is returned;
     /// otherwise, `false` is returned.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::game;
+    ///
+    /// assert!(!game::State::PlayerXMove.is_game_over());
+    /// assert!(game::State::CatsGame.is_game_over());
+    /// ```
     pub fn is_game_over(&self) -> bool {
         match self {
             State::PlayerXMove => false,

@@ -1,3 +1,9 @@
+//! Represents a game board providing multiple ways to access individual squares.
+//!
+//! Usually you do not need to create a board directly as the game creates the
+//! board that it needs. However, the board is available so its representation can
+//! be displayed in your application.
+
 use std::fmt;
 
 /// Represents the Tic Tac Toe board providing multiple ways to access individual squares.
@@ -12,6 +18,18 @@ impl Board {
     /// # Panics
     /// The minimum board size is 1x1. Panics if either the number of rows or
     /// columns is less than one.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::board;
+    /// let size = board::Size {
+    ///     rows: 3,
+    ///     columns: 3,
+    /// };
+    /// let b = board::Board::new(size);
+    ///
+    /// assert_eq!(b.size(), size);
+    /// ```
     pub fn new(size: Size) -> Board {
         const MIN_BOARD_SIZE: Size = Size {
             rows: 1,
@@ -53,18 +71,20 @@ impl Board {
 
     /// Returns `true` if the board contains the given position.
     ///
-    /// Note that positions are zero based.
+    /// **Note** positions are zero based.
     ///
     /// # Examples
     /// ```
     /// use open_ttt_lib::board;
     ///
-    /// let board = board::Board::new(board::Size { rows: 3, columns: 3 });
+    /// let b = board::Board::new(board::Size::from((3, 3)));
     ///
-    /// assert_eq!(true, board.contains(board::Position { row: 2, column: 2 }));
+    /// assert!(b.contains(board::Position { row: 2, column: 2 }));
     /// // Since the positions are zero indexed, the board does not
     /// // contain the following position.
-    /// assert_eq!(false, board.contains(board::Position { row: 3, column: 3 }));
+    /// assert!(!b.contains(board::Position { row: 3, column: 3 }));
+    /// // A negative row or column is also not contained in the board.
+    /// assert!(!b.contains(board::Position { row: -1, column: -1 }));
     /// ```
     pub fn contains(&self, position: Position) -> bool {
         let size = self.size();
@@ -75,8 +95,18 @@ impl Board {
             && position.column < size.columns
     }
 
-    /// Returns a copy of the owner at the indicated position or `None`
+    /// Returns a copy of the owner at the indicated position, or `None`
     /// if the board does not contain the provided position.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::board;
+    ///
+    /// let b = board::Board::new(board::Size::from((3, 3)));
+    ///
+    /// assert!(b.get(board::Position { row: 0, column: 0 }).is_some());
+    /// assert!(b.get(board::Position { row: -1, column: -1 }).is_none());
+    /// ```
     pub fn get(&self, position: Position) -> Option<Owner> {
         if self.contains(position) {
             let owner = self.squares[position.row as usize][position.column as usize];
@@ -95,15 +125,15 @@ impl Board {
     /// ```
     /// use open_ttt_lib::board;
     ///
-    /// let size = board::Size { rows: 3, columns: 3 };
+    /// let mut b = board::Board::new(board::Size::from((3, 3)));
     /// let position = board::Position { row: 2, column: 2 };
-    /// let mut board = board::Board::new(size);
     ///
-    /// if let Some(owner) = board.get_mut(position) {
+    /// // Change the owner of the position to Player X.
+    /// if let Some(owner) = b.get_mut(position) {
     ///     *owner = board::Owner::PlayerX;
     /// }
     ///
-    /// assert_eq!(board.get(position), Some(board::Owner::PlayerX));
+    /// assert_eq!(b.get(position), Some(board::Owner::PlayerX));
     /// ```
     pub fn get_mut(&mut self, position: Position) -> Option<&mut Owner> {
         if self.contains(position) {
@@ -116,7 +146,19 @@ impl Board {
     /// Gets an iterator over all the positions in the board.
     ///
     /// The iterator provides tuples containing the position and the owner of the
-    /// position.
+    /// position. The items are returned in arbitrary order.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::board;
+    ///
+    /// let b = board::Board::new(board::Size::from((3, 3)));
+    ///
+    /// // Print the owner of every position.
+    /// for (position, owner) in b.iter() {
+    ///     println!("{:?} is owned by {:?}", position, owner);
+    /// }
+    /// ```
     pub fn iter(&self) -> Iter {
         Iter {
             board: &self,
@@ -200,6 +242,18 @@ impl Iterator for Iter<'_> {
 }
 
 /// Represents the size of the board in number of rows and columns.
+///
+/// # Examples
+/// ```
+/// use open_ttt_lib::board;
+///
+/// let size = board::Size { rows: 3, columns: 1 };
+///
+/// // Sizes can also be constructed from tuples:
+/// let size_from_tuple = board::Size::from((3, 1));
+///
+/// assert_eq!(size, size_from_tuple);
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Size {
     /// The number of rows.
@@ -211,6 +265,15 @@ pub struct Size {
 
 impl From<(i32, i32)> for Size {
     /// Creates a Size structure from the given tuple.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::board;
+    ///
+    /// let size = board::Size::from((3, 1));
+    /// assert_eq!(size.rows, 3);
+    /// assert_eq!(size.columns, 1);
+    /// ```
     #[inline]
     fn from(value: (i32, i32)) -> Size {
         Size {
@@ -222,17 +285,19 @@ impl From<(i32, i32)> for Size {
 
 /// Represents a specific board position denoted by row and column.
 ///
-/// The row and column values are zero based indexed.
+/// The row and column values are zero based indexed. However, negative values
+/// can be assigned; often this is convenient when positions are calculated from
+/// mathematical algorithms.
 ///
 /// # Examples
-/// A convenient way to create a position is from a tuple where the first element
-/// is the row and the second element is the column.
 /// ```
 /// use open_ttt_lib::board;
 ///
-/// let p = board::Position::from((2, 3));
-/// assert_eq!(p.row, 2);
-/// assert_eq!(p.column, 3);
+/// let p = board::Position { row: 2, column: 3 };
+///
+/// // Positions can also be constructed from tuples.
+/// let p2 = board::Position::from((2, 3));
+/// assert_eq!(p, p2);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Position {
@@ -245,6 +310,15 @@ pub struct Position {
 
 impl From<(i32, i32)> for Position {
     /// Creates a Position structure from the given tuple.
+    ///
+    /// # Examples
+    /// ```
+    /// use open_ttt_lib::board;
+    ///
+    /// let p = board::Position::from((2, 3));
+    /// assert_eq!(p.row, 2);
+    /// assert_eq!(p.column, 3);
+    /// ```
     #[inline]
     fn from(value: (i32, i32)) -> Position {
         Position {
