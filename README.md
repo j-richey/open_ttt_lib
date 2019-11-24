@@ -1,5 +1,6 @@
 # open_ttt_lib
 [![Build Status](https://travis-ci.com/j-richey/open_ttt_lib.svg?branch=master)](https://travis-ci.com/j-richey/open_ttt_lib)
+[![Coverage Status](https://coveralls.io/repos/github/j-richey/open_ttt_lib/badge.svg?branch=master)](https://coveralls.io/github/j-richey/open_ttt_lib?branch=master)
 
 Open source Rust library that provides common Tic Tac Toe logic that can be used
 by other Rust applications.
