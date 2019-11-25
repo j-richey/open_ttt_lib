@@ -43,8 +43,11 @@ jobs:
           sources:
             - kalakris-cmake
       before_script:
-        - cargo install --force cargo-travis
+        # Install / update outdated cached binaries.
         - export PATH=$HOME/.cargo/bin:$PATH
+        - cargo install cargo-update || echo "cargo-update already installed"
+        - cargo install cargo-travis || echo "cargo-travis already installed"
+        - cargo install-update -a
         - rustup component add clippy
         - rustup component add rustfmt
       after_success:
