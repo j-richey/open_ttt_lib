@@ -28,13 +28,13 @@ If you have an idea for a new feature file a feature request then assign it
 to yourself to start work. This ensures others have clarity of new features
 being added to the library.
 
-Also, pull requests adding, clarifying, or fixing typos in the documentation is
-always welcome.
+Also, pull requests for adding, clarifying, or fixing typos in the 
+documentation are always welcome.
 
 
 ## Unit Tests
-A goal of the library is to maintain excellent test coverage to ensure we 
-deliver a quality product. We strive for 100% branch coverage.
+A goal of this project is to maintain excellent test coverage to ensure we 
+deliver a quality library. We strive for 100% branch coverage.
 
 Please ensure any added code is covered with unit tests and the unit tests
 pass before sending a pull request.
@@ -62,16 +62,16 @@ Then run with:
 cargo clippy
 ```
 
-This will point out any problematic spots in the code. Please fix any items it points out.
-Rarely, it might have a false positive. In that case please allow an exception for the
+This will point out any problematic spots in the code. Please fix the indicated items.
+Rarely, there might be false positive. In that case please allow an exception for the
 specific rule at the specific location of the violation along with a comment describing
 why it was necessary to suppress the rule.
 
 
 ## Code Formatting
 The [rustfmt](https://github.com/rust-lang/rustfmt) to is used to automatically provide
-consistent formatting to the code base. This allows you to focus on the hight level logic
-of the code and not worry about the formatting details. To instal `rustfmt` run:
+consistent formatting to the code base. This allows you to focus on the high level logic
+and not worry about formatting details. To instal `rustfmt` run:
 
 ```
 rustup component add rustfmt
