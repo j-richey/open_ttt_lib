@@ -652,6 +652,19 @@ mod tests {
     }
 
     #[test]
+    fn game_default_should_create_3x3_board() {
+        let expected_size = board::Size {
+            rows: 3,
+            columns: 3,
+        };
+
+        let game = Game::default();
+        let actual_size = game.board().size();
+
+        assert_eq!(expected_size, actual_size);
+    }
+
+    #[test]
     fn game_free_positions_should_not_contain_any_owned_positions() {
         let mut game = Game::new();
         // Configure the board so each player owns some positions.
@@ -1051,6 +1064,50 @@ mod tests {
         let actual_is_game_over = game.state().is_game_over();
 
         assert_eq!(expected_is_game_over, actual_is_game_over);
+    }
+
+    #[test]
+    fn error_display_when_game_over_should_be_non_empty() {
+        let error = Error::GameOver;
+
+        let error_message = error.to_string();
+
+        assert_ne!(0, error_message.len());
+    }
+
+    #[test]
+    fn error_display_when_position_already_owned_should_contain_position_text() {
+        let position = board::Position { row: 0, column: 0 };
+        let owner = board::Owner::PlayerX;
+        let position_text = format!("{:?}", position);
+        let error = Error::PositionAlreadyOwned(position, owner);
+
+        let error_message = error.to_string();
+
+        assert!(error_message.contains(&position_text));
+    }
+
+    #[test]
+    fn error_display_when_position_already_owned_should_contain_owner_text() {
+        let position = board::Position { row: 0, column: 0 };
+        let owner = board::Owner::PlayerX;
+        let owner_text = format!("{:?}", owner);
+        let error = Error::PositionAlreadyOwned(position, owner);
+
+        let error_message = error.to_string();
+
+        assert!(error_message.contains(&owner_text));
+    }
+
+    #[test]
+    fn error_display_when_invalid_position_should_contain_position_text() {
+        let position = board::Position { row: 0, column: 0 };
+        let position_text = format!("{:?}", position);
+        let error = Error::InvalidPosition(position);
+
+        let error_message = error.to_string();
+
+        assert!(error_message.contains(&position_text));
     }
 
     #[test]
