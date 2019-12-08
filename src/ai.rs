@@ -12,11 +12,11 @@ use crate::game;
 ///
 /// This can be used to create single player games or implement a hint system
 /// for human users.
-pub struct AIOpponent {
+pub struct Opponent {
     mistake_probability: f64,
 }
 
-impl AIOpponent {
+impl Opponent {
     /// Constructs a new AI opponent.
     ///
     /// The mistake probability indicates how likely the AI will fail to consider
@@ -31,7 +31,7 @@ impl AIOpponent {
     /// use open_ttt_lib::ai;
     ///
     /// let mistake_probability = 0.0;
-    /// let unbeatable_opponent = ai::AIOpponent::new(mistake_probability);
+    /// let unbeatable_opponent = ai::Opponent::new(mistake_probability);
     /// ```
     ///
     /// Construct an AI opponent that randomly picks a position:
@@ -39,7 +39,7 @@ impl AIOpponent {
     /// use open_ttt_lib::ai;
     ///
     /// let mistake_probability = 1.0;
-    /// let rando = ai::AIOpponent::new(mistake_probability);
+    /// let rando = ai::Opponent::new(mistake_probability);
     /// ```
     pub fn new(mistake_probability: f64) -> Self {
         Self {
@@ -58,7 +58,7 @@ impl AIOpponent {
     /// use open_ttt_lib::game;
     ///
     /// let game = game::Game::new();
-    /// let ai_opponent = ai::AIOpponent::new(0.0);
+    /// let ai_opponent = ai::Opponent::new(0.0);
     ///
     /// match ai_opponent.get_move(&game) {
     ///     Some(position) => assert!(game.can_move(position)),
@@ -87,7 +87,7 @@ impl AIOpponent {
     /// use open_ttt_lib::game;
     ///
     /// let game = game::Game::new();
-    /// let ai_opponent = ai::AIOpponent::new(0.0);
+    /// let ai_opponent = ai::Opponent::new(0.0);
     ///
     /// let position_map = ai_opponent.evaluate_game(&game);
     ///
@@ -96,7 +96,7 @@ impl AIOpponent {
     ///     println!("position: {:?} outcome: {:?}", position, outcome);
     /// }
     /// ```
-    pub fn evaluate_game(&self, game: &game::Game) -> HashMap<game::Position, AIOutcome> {
+    pub fn evaluate_game(&self, game: &game::Game) -> HashMap<game::Position, Outcome> {
         let mut outcomes = HashMap::new();
 
         // We only evaluate the game if it is not over as if the game is over we
@@ -124,7 +124,7 @@ impl AIOpponent {
         game: &game::Game,
         position: game::Position,
         ai_player: AIPlayer,
-    ) -> AIOutcome {
+    ) -> Outcome {
         debug_assert!(
             game.can_move(position),
             "Cannot move into the provided position, {:?}. Thus, the position \
@@ -137,7 +137,7 @@ impl AIOpponent {
         // Check to see if the AI should make a mistake. If so, don't consider
         // this position.
         if self.should_make_mistake() {
-            return AIOutcome::Unknown;
+            return Outcome::Unknown;
         }
 
         // Clone the game so we can try out the move without modifying the original game.
@@ -147,7 +147,7 @@ impl AIOpponent {
         // Check to see if the game is over. If so, return the outcome of the
         // game from the AI's perspective, e.g. win, loss, or cat's game.
         if state.is_game_over() {
-            return AIOutcome::from_game_state(state, ai_player);
+            return Outcome::from_game_state(state, ai_player);
         }
 
         // The game is not over, to evaluate each of the remaining free squares.
@@ -174,7 +174,7 @@ impl AIOpponent {
 
 /// Represents a game outcome for the AI opponent.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum AIOutcome {
+pub enum Outcome {
     /// The AI player wins the game.
     Win,
 
@@ -188,21 +188,21 @@ pub enum AIOutcome {
     Unknown,
 }
 
-impl AIOutcome {
+impl Outcome {
     // Determines the outcome of the game or the AI opponent based on the
     // provided game state.
     //
     // Panics if the game is not over.
     fn from_game_state(state: game::State, ai_player: AIPlayer) -> Self {
         match state {
-            game::State::CatsGame => AIOutcome::CatsGame,
+            game::State::CatsGame => Outcome::CatsGame,
             game::State::PlayerXWin(_) => match ai_player {
-                AIPlayer::PlayerX => AIOutcome::Win,
-                AIPlayer::PlayerO => AIOutcome::Loss,
+                AIPlayer::PlayerX => Outcome::Win,
+                AIPlayer::PlayerO => Outcome::Loss,
             },
             game::State::PlayerOWin(_) => match ai_player {
-                AIPlayer::PlayerX => AIOutcome::Loss,
-                AIPlayer::PlayerO => AIOutcome::Win,
+                AIPlayer::PlayerX => Outcome::Loss,
+                AIPlayer::PlayerO => Outcome::Win,
             },
             _ => panic!(
                 "Cannot determine the AI outcome since the game is not over. \
@@ -246,7 +246,7 @@ impl AIPlayer {
 /// are multiple positions with the same outcome, one of the positions is
 /// picked at random.
 pub fn best_position<S: BuildHasher>(
-    outcomes: &HashMap<game::Position, AIOutcome, S>,
+    outcomes: &HashMap<game::Position, Outcome, S>,
 ) -> Option<game::Position> {
     // Build a mapping from outcomes to positions so one of the positions with
     // the best outcome can be selected.
@@ -262,34 +262,34 @@ pub fn best_position<S: BuildHasher>(
             .push(position);
     }
 
-    if outcome_to_position_map.contains_key(&AIOutcome::Win) {
+    if outcome_to_position_map.contains_key(&Outcome::Win) {
         Some(
             **outcome_to_position_map
-                .get(&AIOutcome::Win)
+                .get(&Outcome::Win)
                 .unwrap()
                 .choose(&mut rand::thread_rng())
                 .unwrap(),
         )
-    } else if outcome_to_position_map.contains_key(&AIOutcome::CatsGame) {
+    } else if outcome_to_position_map.contains_key(&Outcome::CatsGame) {
         Some(
             **outcome_to_position_map
-                .get(&AIOutcome::CatsGame)
+                .get(&Outcome::CatsGame)
                 .unwrap()
                 .choose(&mut rand::thread_rng())
                 .unwrap(),
         )
-    } else if outcome_to_position_map.contains_key(&AIOutcome::Unknown) {
+    } else if outcome_to_position_map.contains_key(&Outcome::Unknown) {
         Some(
             **outcome_to_position_map
-                .get(&AIOutcome::Unknown)
+                .get(&Outcome::Unknown)
                 .unwrap()
                 .choose(&mut rand::thread_rng())
                 .unwrap(),
         )
-    } else if outcome_to_position_map.contains_key(&AIOutcome::Loss) {
+    } else if outcome_to_position_map.contains_key(&Outcome::Loss) {
         Some(
             **outcome_to_position_map
-                .get(&AIOutcome::Loss)
+                .get(&Outcome::Loss)
                 .unwrap()
                 .choose(&mut rand::thread_rng())
                 .unwrap(),
@@ -304,17 +304,17 @@ pub fn best_position<S: BuildHasher>(
 // The ordering of outcomes returned are: `Loss`, `CatsGame`, `Win`.
 // `Unknown` is returned if the provided slice is empty or only contains unknown
 // outcomes.
-fn worst_outcome(outcomes: &HashSet<AIOutcome>) -> AIOutcome {
+fn worst_outcome(outcomes: &HashSet<Outcome>) -> Outcome {
     // The set is checked for the outcomes from worst to best, finally returning
     // unknown if it is empty or no other information is known.
-    if outcomes.contains(&AIOutcome::Loss) {
-        AIOutcome::Loss
-    } else if outcomes.contains(&AIOutcome::CatsGame) {
-        AIOutcome::CatsGame
-    } else if outcomes.contains(&AIOutcome::Win) {
-        AIOutcome::Win
+    if outcomes.contains(&Outcome::Loss) {
+        Outcome::Loss
+    } else if outcomes.contains(&Outcome::CatsGame) {
+        Outcome::CatsGame
+    } else if outcomes.contains(&Outcome::Win) {
+        Outcome::Win
     } else {
-        AIOutcome::Unknown
+        Outcome::Unknown
     }
 }
 
@@ -374,13 +374,13 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_get_move_when_game_is_over_should_be_none() {
+    fn opponent_get_move_when_game_is_over_should_be_none() {
         // Create a game where the game is over.
         let game = create_game(&PLAYER_X_WIN);
-        let ai_opponent = AIOpponent::new(0.0);
+        let opponent = Opponent::new(0.0);
         let expected_position = None;
 
-        let actual_position = ai_opponent.get_move(&game);
+        let actual_position = opponent.get_move(&game);
 
         assert_eq!(
             expected_position,
@@ -391,14 +391,14 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_get_move_when_zero_mistake_probability_should_pick_wining_position() {
+    fn opponent_get_move_when_zero_mistake_probability_should_pick_wining_position() {
         // Create a game where the AI player has a wining move available.
         // The flawless AI should pick this position.
         let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
-        let ai_opponent = AIOpponent::new(0.0);
+        let opponent = Opponent::new(0.0);
         let expected_position = game::Position { row: 1, column: 0 };
 
-        let actual_position = ai_opponent.get_move(&game).unwrap();
+        let actual_position = opponent.get_move(&game).unwrap();
 
         assert_eq!(
             expected_position,
@@ -409,13 +409,13 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_evaluate_game_when_game_over_should_be_empty_map() {
+    fn opponent_evaluate_game_when_game_over_should_be_empty_map() {
         let game = create_game(&PLAYER_X_WIN);
         let mistake_probability = 0.0;
-        let ai_opponent = AIOpponent::new(mistake_probability);
+        let opponent = Opponent::new(mistake_probability);
         let expected_outcomes = HashMap::new();
 
-        let actual_outcomes = ai_opponent.evaluate_game(&game);
+        let actual_outcomes = opponent.evaluate_game(&game);
 
         assert_eq!(
             expected_outcomes,
@@ -426,18 +426,18 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_evaluate_game_when_zero_mistake_probability_should_evaluate_all_positions() {
+    fn opponent_evaluate_game_when_zero_mistake_probability_should_evaluate_all_positions() {
         // Create a game where the AI player has a wining move available.
         // The flawless AI should determine the outcome of all remaining positions.
         let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
         let mistake_probability = 0.0;
-        let ai_opponent = AIOpponent::new(mistake_probability);
+        let opponent = Opponent::new(mistake_probability);
         let mut expected_outcomes = HashMap::new();
-        expected_outcomes.insert(game::Position { row: 1, column: 0 }, AIOutcome::Win);
-        expected_outcomes.insert(game::Position { row: 1, column: 2 }, AIOutcome::Loss);
-        expected_outcomes.insert(game::Position { row: 2, column: 1 }, AIOutcome::CatsGame);
+        expected_outcomes.insert(game::Position { row: 1, column: 0 }, Outcome::Win);
+        expected_outcomes.insert(game::Position { row: 1, column: 2 }, Outcome::Loss);
+        expected_outcomes.insert(game::Position { row: 2, column: 1 }, Outcome::CatsGame);
 
-        let actual_outcomes = ai_opponent.evaluate_game(&game);
+        let actual_outcomes = opponent.evaluate_game(&game);
 
         assert_eq!(
             expected_outcomes,
@@ -448,19 +448,19 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_evaluate_game_when_one_mistake_probability_should_see_unknown_outcome_for_all_positions(
+    fn opponent_evaluate_game_when_one_mistake_probability_should_see_unknown_outcome_for_all_positions(
     ) {
         // Create a game where the AI player has a wining move available.
         // The AI that always makes mistakes should see the outcome as unknown for all positions.
         let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
         let mistake_probability = 1.0;
-        let ai_opponent = AIOpponent::new(mistake_probability);
+        let opponent = Opponent::new(mistake_probability);
         let mut expected_outcomes = HashMap::new();
-        expected_outcomes.insert(game::Position { row: 1, column: 0 }, AIOutcome::Unknown);
-        expected_outcomes.insert(game::Position { row: 1, column: 2 }, AIOutcome::Unknown);
-        expected_outcomes.insert(game::Position { row: 2, column: 1 }, AIOutcome::Unknown);
+        expected_outcomes.insert(game::Position { row: 1, column: 0 }, Outcome::Unknown);
+        expected_outcomes.insert(game::Position { row: 1, column: 2 }, Outcome::Unknown);
+        expected_outcomes.insert(game::Position { row: 2, column: 1 }, Outcome::Unknown);
 
-        let actual_outcomes = ai_opponent.evaluate_game(&game);
+        let actual_outcomes = opponent.evaluate_game(&game);
 
         assert_eq!(
             expected_outcomes,
@@ -471,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_outcomes_empty_should_none() {
+    fn opponent_best_position_when_outcomes_empty_should_none() {
         let outcomes = HashMap::new();
         let expected_position = None;
 
@@ -481,11 +481,11 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_win_and_cats_game_should_be_win() {
+    fn opponent_best_position_when_win_and_cats_game_should_be_win() {
         let mut outcomes = HashMap::new();
-        outcomes.insert(game::Position { row: 0, column: 0 }, AIOutcome::CatsGame);
+        outcomes.insert(game::Position { row: 0, column: 0 }, Outcome::CatsGame);
         let expected_position = game::Position { row: 0, column: 1 };
-        outcomes.insert(expected_position, AIOutcome::Win);
+        outcomes.insert(expected_position, Outcome::Win);
 
         let actual_position = best_position(&outcomes);
 
@@ -493,11 +493,11 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_win_and_unknown_should_be_win() {
+    fn opponent_best_position_when_win_and_unknown_should_be_win() {
         let mut outcomes = HashMap::new();
-        outcomes.insert(game::Position { row: 0, column: 0 }, AIOutcome::Unknown);
+        outcomes.insert(game::Position { row: 0, column: 0 }, Outcome::Unknown);
         let expected_position = game::Position { row: 0, column: 1 };
-        outcomes.insert(expected_position, AIOutcome::Win);
+        outcomes.insert(expected_position, Outcome::Win);
 
         let actual_position = best_position(&outcomes);
 
@@ -505,11 +505,11 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_win_and_loss_should_be_win() {
+    fn opponent_best_position_when_win_and_loss_should_be_win() {
         let mut outcomes = HashMap::new();
-        outcomes.insert(game::Position { row: 0, column: 0 }, AIOutcome::Loss);
+        outcomes.insert(game::Position { row: 0, column: 0 }, Outcome::Loss);
         let expected_position = game::Position { row: 0, column: 1 };
-        outcomes.insert(expected_position, AIOutcome::Win);
+        outcomes.insert(expected_position, Outcome::Win);
 
         let actual_position = best_position(&outcomes);
 
@@ -517,11 +517,11 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_cats_game_and_loss_should_be_cats_game() {
+    fn opponent_best_position_when_cats_game_and_loss_should_be_cats_game() {
         let mut outcomes = HashMap::new();
-        outcomes.insert(game::Position { row: 0, column: 0 }, AIOutcome::Loss);
+        outcomes.insert(game::Position { row: 0, column: 0 }, Outcome::Loss);
         let expected_position = game::Position { row: 0, column: 1 };
-        outcomes.insert(expected_position, AIOutcome::CatsGame);
+        outcomes.insert(expected_position, Outcome::CatsGame);
 
         let actual_position = best_position(&outcomes);
 
@@ -529,11 +529,11 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_cats_game_and_unknown_should_be_cats_game() {
+    fn opponent_best_position_when_cats_game_and_unknown_should_be_cats_game() {
         let mut outcomes = HashMap::new();
-        outcomes.insert(game::Position { row: 0, column: 0 }, AIOutcome::Unknown);
+        outcomes.insert(game::Position { row: 0, column: 0 }, Outcome::Unknown);
         let expected_position = game::Position { row: 0, column: 1 };
-        outcomes.insert(expected_position, AIOutcome::CatsGame);
+        outcomes.insert(expected_position, Outcome::CatsGame);
 
         let actual_position = best_position(&outcomes);
 
@@ -541,11 +541,11 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_unknown_and_loss_should_be_unknown() {
+    fn opponent_best_position_when_unknown_and_loss_should_be_unknown() {
         let mut outcomes = HashMap::new();
-        outcomes.insert(game::Position { row: 0, column: 0 }, AIOutcome::Loss);
+        outcomes.insert(game::Position { row: 0, column: 0 }, Outcome::Loss);
         let expected_position = game::Position { row: 0, column: 1 };
-        outcomes.insert(expected_position, AIOutcome::Unknown);
+        outcomes.insert(expected_position, Outcome::Unknown);
 
         let actual_position = best_position(&outcomes);
 
@@ -553,11 +553,11 @@ mod tests {
     }
 
     #[test]
-    fn ai_opponent_best_position_when_same_outcome_should_pick_random_position() {
+    fn opponent_best_position_when_same_outcome_should_pick_random_position() {
         let mut outcomes = HashMap::new();
-        outcomes.insert(game::Position { row: 0, column: 0 }, AIOutcome::CatsGame);
-        outcomes.insert(game::Position { row: 0, column: 1 }, AIOutcome::CatsGame);
-        outcomes.insert(game::Position { row: 0, column: 2 }, AIOutcome::CatsGame);
+        outcomes.insert(game::Position { row: 0, column: 0 }, Outcome::CatsGame);
+        outcomes.insert(game::Position { row: 0, column: 1 }, Outcome::CatsGame);
+        outcomes.insert(game::Position { row: 0, column: 2 }, Outcome::CatsGame);
         // A set is used to see which positions were picked.
         let mut positions_set = HashSet::new();
 
@@ -613,64 +613,64 @@ mod tests {
     }
 
     #[test]
-    fn ai_outcome_from_game_state_when_cats_game_should_be_cats_game() {
+    fn outcome_from_game_state_when_cats_game_should_be_cats_game() {
         let game_state = game::State::CatsGame;
         let ai_player = AIPlayer::PlayerX;
-        let expected_ai_outcome = AIOutcome::CatsGame;
+        let expected_outcome = Outcome::CatsGame;
 
-        let actual_ai_outcome = AIOutcome::from_game_state(game_state, ai_player);
+        let actual_outcome = Outcome::from_game_state(game_state, ai_player);
 
-        assert_eq!(expected_ai_outcome, actual_ai_outcome);
+        assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
-    fn ai_outcome_from_game_state_when_player_X_win_and_player_X_should_be_win() {
+    fn outcome_from_game_state_when_player_X_win_and_player_X_should_be_win() {
         let game_state = game::State::PlayerXWin(Default::default());
         let ai_player = AIPlayer::PlayerX;
-        let expected_ai_outcome = AIOutcome::Win;
+        let expected_outcome = Outcome::Win;
 
-        let actual_ai_outcome = AIOutcome::from_game_state(game_state, ai_player);
+        let actual_outcome = Outcome::from_game_state(game_state, ai_player);
 
-        assert_eq!(expected_ai_outcome, actual_ai_outcome);
+        assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
-    fn ai_outcome_from_game_state_when_player_X_win_and_player_O_should_be_loss() {
+    fn outcome_from_game_state_when_player_X_win_and_player_O_should_be_loss() {
         let game_state = game::State::PlayerXWin(Default::default());
         let ai_player = AIPlayer::PlayerO;
-        let expected_ai_outcome = AIOutcome::Loss;
+        let expected_outcome = Outcome::Loss;
 
-        let actual_ai_outcome = AIOutcome::from_game_state(game_state, ai_player);
+        let actual_outcome = Outcome::from_game_state(game_state, ai_player);
 
-        assert_eq!(expected_ai_outcome, actual_ai_outcome);
+        assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
-    fn ai_outcome_from_game_state_when_player_O_win_and_player_O_should_be_win() {
+    fn outcome_from_game_state_when_player_O_win_and_player_O_should_be_win() {
         let game_state = game::State::PlayerOWin(Default::default());
         let ai_player = AIPlayer::PlayerO;
-        let expected_ai_outcome = AIOutcome::Win;
+        let expected_outcome = Outcome::Win;
 
-        let actual_ai_outcome = AIOutcome::from_game_state(game_state, ai_player);
+        let actual_outcome = Outcome::from_game_state(game_state, ai_player);
 
-        assert_eq!(expected_ai_outcome, actual_ai_outcome);
+        assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
-    fn ai_outcome_from_game_state_when_player_O_win_and_player_X_should_be_loss() {
+    fn outcome_from_game_state_when_player_O_win_and_player_X_should_be_loss() {
         let game_state = game::State::PlayerOWin(Default::default());
         let ai_player = AIPlayer::PlayerX;
-        let expected_ai_outcome = AIOutcome::Loss;
+        let expected_outcome = Outcome::Loss;
 
-        let actual_ai_outcome = AIOutcome::from_game_state(game_state, ai_player);
+        let actual_outcome = Outcome::from_game_state(game_state, ai_player);
 
-        assert_eq!(expected_ai_outcome, actual_ai_outcome);
+        assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
     fn worst_outcome_when_empty_should_be_unknown() {
         let outcomes = Default::default();
-        let expected_outcome = AIOutcome::Unknown;
+        let expected_outcome = Outcome::Unknown;
 
         let actual_outcome = worst_outcome(&outcomes);
 
@@ -679,8 +679,8 @@ mod tests {
 
     #[test]
     fn worst_outcome_when_win_and_loss_should_be_loss() {
-        let outcomes = [AIOutcome::Win, AIOutcome::Loss].iter().cloned().collect();
-        let expected_outcome = AIOutcome::Loss;
+        let outcomes = [Outcome::Win, Outcome::Loss].iter().cloned().collect();
+        let expected_outcome = Outcome::Loss;
 
         let actual_outcome = worst_outcome(&outcomes);
 
@@ -689,11 +689,8 @@ mod tests {
 
     #[test]
     fn worst_outcome_when_cats_game_and_loss_should_be_loss() {
-        let outcomes = [AIOutcome::CatsGame, AIOutcome::Loss]
-            .iter()
-            .cloned()
-            .collect();
-        let expected_outcome = AIOutcome::Loss;
+        let outcomes = [Outcome::CatsGame, Outcome::Loss].iter().cloned().collect();
+        let expected_outcome = Outcome::Loss;
 
         let actual_outcome = worst_outcome(&outcomes);
 
@@ -702,11 +699,8 @@ mod tests {
 
     #[test]
     fn worst_outcome_when_cats_game_and_cats_game_should_be_cats_game() {
-        let outcomes = [AIOutcome::Win, AIOutcome::CatsGame]
-            .iter()
-            .cloned()
-            .collect();
-        let expected_outcome = AIOutcome::CatsGame;
+        let outcomes = [Outcome::Win, Outcome::CatsGame].iter().cloned().collect();
+        let expected_outcome = Outcome::CatsGame;
 
         let actual_outcome = worst_outcome(&outcomes);
 
