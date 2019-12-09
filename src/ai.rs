@@ -1,4 +1,18 @@
 //! Provides functionality for creating single player games.
+//!
+//! # Examples
+//! ```
+//! use open_ttt_lib::ai;
+//! use open_ttt_lib::game;
+//!
+//! let game = game::Game::new();
+//! let ai_opponent = ai::Opponent::new(0.0);
+//!
+//! match ai_opponent.get_move(&game) {
+//!     Some(position) => assert!(game.can_move(position)),
+//!     None => panic!("The game is over so the AI opponent cannot do a move."),
+//! };
+//! ```
 
 use rand::seq::SliceRandom;
 use rand::Rng;
@@ -89,9 +103,10 @@ impl Opponent {
     /// let game = game::Game::new();
     /// let ai_opponent = ai::Opponent::new(0.0);
     ///
-    /// let position_map = ai_opponent.evaluate_game(&game);
+    /// let outcomes = ai_opponent.evaluate_game(&game);
     ///
-    /// for (position, outcome) in position_map {
+    /// // Display the outcome for each position.
+    /// for (position, outcome) in outcomes {
     ///     assert!(game.can_move(position));
     ///     println!("position: {:?} outcome: {:?}", position, outcome);
     /// }
@@ -245,6 +260,22 @@ impl AIPlayer {
 /// AI would rather have the game end in a draw than risk a loss. If there
 /// are multiple positions with the same outcome, one of the positions is
 /// picked at random.
+///
+/// # Examples
+/// ```
+/// use open_ttt_lib::ai;
+/// use open_ttt_lib::game;
+///
+/// let game = game::Game::new();
+/// let ai_opponent = ai::Opponent::new(0.0);
+///
+/// let outcomes = ai_opponent.evaluate_game(&game);
+///
+/// // Get the best position to use based on the outcomes.
+/// if let Some(position) = ai::best_position(&outcomes) {
+///     assert!(game.can_move(position));
+/// }
+/// ```
 pub fn best_position<S: BuildHasher>(
     outcomes: &HashMap<game::Position, Outcome, S>,
 ) -> Option<game::Position> {
