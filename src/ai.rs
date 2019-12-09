@@ -251,7 +251,6 @@ pub fn best_position<S: BuildHasher>(
     // Build a mapping from outcomes to positions so one of the positions with
     // the best outcome can be selected.
     let mut outcome_to_position_map = HashMap::new();
-
     for (position, outcome) in outcomes {
         if !outcome_to_position_map.contains_key(outcome) {
             outcome_to_position_map.insert(outcome, Vec::new());
@@ -262,41 +261,28 @@ pub fn best_position<S: BuildHasher>(
             .push(position);
     }
 
-    if outcome_to_position_map.contains_key(&Outcome::Win) {
-        Some(
-            **outcome_to_position_map
-                .get(&Outcome::Win)
+    // Iterate over the outcomes from best to worst returning a position with the
+    // best outcome. If there are multiple positions, a random one is selected.
+    let best_to_worst_outcomes = [
+        Outcome::Win,
+        Outcome::CatsGame,
+        Outcome::Unknown,
+        Outcome::Loss,
+    ];
+    for outcome in best_to_worst_outcomes.iter() {
+        if outcome_to_position_map.contains_key(outcome) {
+            let random_position = **outcome_to_position_map
+                .get(outcome)
                 .unwrap()
                 .choose(&mut rand::thread_rng())
-                .unwrap(),
-        )
-    } else if outcome_to_position_map.contains_key(&Outcome::CatsGame) {
-        Some(
-            **outcome_to_position_map
-                .get(&Outcome::CatsGame)
-                .unwrap()
-                .choose(&mut rand::thread_rng())
-                .unwrap(),
-        )
-    } else if outcome_to_position_map.contains_key(&Outcome::Unknown) {
-        Some(
-            **outcome_to_position_map
-                .get(&Outcome::Unknown)
-                .unwrap()
-                .choose(&mut rand::thread_rng())
-                .unwrap(),
-        )
-    } else if outcome_to_position_map.contains_key(&Outcome::Loss) {
-        Some(
-            **outcome_to_position_map
-                .get(&Outcome::Loss)
-                .unwrap()
-                .choose(&mut rand::thread_rng())
-                .unwrap(),
-        )
-    } else {
-        None
+                .unwrap();
+
+            return Some(random_position);
+        }
     }
+
+    // No suitable positions were found, so return None.
+    None
 }
 
 // Gets the worst possible outcome based on the provided outcomes.
@@ -305,17 +291,16 @@ pub fn best_position<S: BuildHasher>(
 // `Unknown` is returned if the provided slice is empty or only contains unknown
 // outcomes.
 fn worst_outcome(outcomes: &HashSet<Outcome>) -> Outcome {
-    // The set is checked for the outcomes from worst to best, finally returning
-    // unknown if it is empty or no other information is known.
-    if outcomes.contains(&Outcome::Loss) {
-        Outcome::Loss
-    } else if outcomes.contains(&Outcome::CatsGame) {
-        Outcome::CatsGame
-    } else if outcomes.contains(&Outcome::Win) {
-        Outcome::Win
-    } else {
-        Outcome::Unknown
+    // Search through the outcomes, from worst to best, returning the first one found.
+    let worst_to_best_outcomes = [Outcome::Loss, Outcome::CatsGame, Outcome::Win];
+    for outcome in worst_to_best_outcomes.iter() {
+        if outcomes.contains(outcome) {
+            return *outcome;
+        }
     }
+
+    // None of the other outcomes were found so return unknown.
+    Outcome::Unknown
 }
 
 #[allow(non_snake_case)]
