@@ -56,6 +56,15 @@ impl Opponent {
     /// let rando = ai::Opponent::new(mistake_probability);
     /// ```
     pub fn new(mistake_probability: f64) -> Self {
+        // Make sure the mistake probability is within the expected range.
+        let mistake_probability = if mistake_probability < 0.0 {
+            0.0
+        } else if mistake_probability > 1.0 {
+            1.0
+        } else {
+            mistake_probability
+        };
+
         Self {
             mistake_probability,
         }
@@ -387,6 +396,28 @@ mod tests {
         }
 
         game
+    }
+
+    #[test]
+    fn opponent_new_mistake_probability_less_than_zero_should_be_set_to_zero() {
+        let provided_mistake_probability = -1.0;
+        let expected_mistake_probability = 0.0;
+
+        let opponent = Opponent::new(provided_mistake_probability);
+        let actual_mistake_probability = opponent.mistake_probability;
+
+        assert_eq!(expected_mistake_probability, actual_mistake_probability);
+    }
+
+    #[test]
+    fn opponent_new_mistake_probability_greater_than_one_should_be_set_to_one() {
+        let provided_mistake_probability = 2.0;
+        let expected_mistake_probability = 1.0;
+
+        let opponent = Opponent::new(provided_mistake_probability);
+        let actual_mistake_probability = opponent.mistake_probability;
+
+        assert_eq!(expected_mistake_probability, actual_mistake_probability);
     }
 
     #[test]
