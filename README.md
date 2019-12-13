@@ -8,6 +8,14 @@ by other Rust applications.
 :warning: This library is currently under development and has not yet been published
 to [crates.io](https://crates.io/).
 
+## Usage
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+open_ttt_lib = "0.1"
+```
+
 
 ## Feature Requests
 Feel free to request new features. File a feature request describing the feature

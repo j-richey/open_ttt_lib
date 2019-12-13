@@ -50,6 +50,8 @@
 //! # }
 //! ```
 
+#![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.1.0")]
+
 pub mod ai;
 pub mod board;
 pub mod game;
