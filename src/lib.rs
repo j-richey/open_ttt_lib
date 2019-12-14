@@ -5,17 +5,17 @@
 //! the game.
 //! ```
 //! use open_ttt_lib::{ai, game};
-//! 
+//!
 //! fn main() -> Result<(), Box<game::Error>> {
 //!     // Create a game and two AI opponents to play the game.
 //!     let mut game = game::Game::new();
-//! 
+//!
 //!     // Rando picks random positions.
 //!     let rando = ai::Opponent::new(1.0);
 //!     // The flawless opponent cannot loose: it fully evaluates every possible
 //!     // move and countermove to pick the best position.
 //!     let flawless_ai = ai::Opponent::new(0.0);
-//! 
+//!
 //!     // Have the opponents take turns making moves until the game is over.
 //!     loop {
 //!         match game.state() {
@@ -40,17 +40,16 @@
 //!                 break;
 //!             }
 //!         };
-//! 
+//!
 //!         // Print the game's the board.
 //!         println!("{}", game.board());
 //!     }
-//! 
+//!
 //!     Ok(())
 //! }
 //! ```
 
 #![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.1.0")]
-
 
 pub mod ai;
 pub mod board;
