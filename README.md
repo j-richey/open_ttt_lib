@@ -25,17 +25,17 @@ Tic Tac Toe until one is victorious.
 
 ```rust
 use open_ttt_lib::{ai, game};
- 
+
 fn main() -> Result<(), Box<game::Error>> {
     // Create a game and two AI opponents to play the game.
     let mut game = game::Game::new();
- 
+
     // Rando picks random positions.
     let rando = ai::Opponent::new(1.0);
     // The flawless opponent cannot loose: it fully evaluates every possible
     // move and countermove to pick the best position.
     let flawless_ai = ai::Opponent::new(0.0);
- 
+
     // Have the opponents take turns making moves until the game is over.
     loop {
         match game.state() {
@@ -60,22 +60,31 @@ fn main() -> Result<(), Box<game::Error>> {
                 break;
             }
         };
- 
+
         // Print the game's the board.
         println!("{}", game.board());
     }
- 
+
     Ok(())
 }
 ```
 
-See the [documentation](https://docs.rs/open_ttt_lib/) for additional examples 
+See the [documentation](https://docs.rs/open_ttt_lib/) for additional examples
 and details on using the library.
+
+### Benchmarks
+This library includes benchmarks that you can use to evaluate if the library
+fits in with your performance goals. Use the following command to run the
+benchmark suite:
+
+```text
+cargo bench
+```
 
 
 ## Feature Requests
 Feel free to request new features. File a feature request describing the feature
-you would like and what benefit you will get from the feature. A user story is 
+you would like and what benefit you will get from the feature. A user story is
 one way to capture this information:
 
 > As a **user** I want **goal/desire** so that **benefit**.
@@ -91,7 +100,7 @@ If you find an issue please include the following information in your report:
 
 
 ## Contributing
-Contributions are welcome! See [CONTRIBUTING.md](https://github.com/j-richey/open_ttt_lib/blob/master/CONTRIBUTING.md) 
+Contributions are welcome! See [CONTRIBUTING.md](https://github.com/j-richey/open_ttt_lib/blob/master/CONTRIBUTING.md)
 for details on how to contribute to this project.
 
 
