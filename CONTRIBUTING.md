@@ -2,7 +2,7 @@
 Contributions to the library welcome! This page describes how to get started
 developing for this library.
 
-This guide describes the tools and procedures used to ensure work is done 
+This guide describes the tools and procedures used to ensure work is done
 efficiently while maintaining consistent code quality. Don't worry if this
 guide seems overwhelming; we use automated tools to check pull requests
 so you do not have to worry if a step is accidentally skipped.
@@ -28,12 +28,12 @@ If you have an idea for a new feature file a feature request then assign it
 to yourself to start work. This ensures others have clarity of new features
 being added to the library.
 
-Also, pull requests for adding, clarifying, or fixing typos in the 
+Also, pull requests for adding, clarifying, or fixing typos in the
 documentation are always welcome.
 
 
 ## Unit Tests
-A goal of this project is to maintain excellent test coverage to ensure we 
+A goal of this project is to maintain excellent test coverage to ensure we
 deliver a quality library. We strive for 100% branch coverage.
 
 Please ensure any added code is covered with unit tests and the unit tests
@@ -87,7 +87,7 @@ cargo fmt
 ## Commits
 Please try to keep commits small and containing a single logical change.
 
-Consider these seven rules when writing a git commit message: 
+Consider these seven rules when writing a git commit message:
 
 1. Separate subject from body with a blank line
 2. Limit the subject line to 50 characters
@@ -97,7 +97,7 @@ Consider these seven rules when writing a git commit message:
 6. Wrap the body at 72 characters
 7. Use the body to explain what and why vs. how
 
-The excellent [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) 
+The excellent [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/)
 guide provides additional details and examples for each of these items.
 
 

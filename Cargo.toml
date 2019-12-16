@@ -6,15 +6,18 @@ license = "MIT"
 description = "Library that provides common Tic Tac Toe logic."
 repository = "https://github.com/j-richey/open_ttt_lib.git"
 homepage = "https://github.com/j-richey/open_ttt_lib"
+documentation = "https://docs.rs/open_ttt_lib"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rand = "0.7.2"
+doc-comment = "0.3.1"
 
 [dev-dependencies]
 criterion = "0.3.0"
+version-sync = "0.8"
 
 [[bench]]
 name = "benchmarks"
