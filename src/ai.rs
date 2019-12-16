@@ -142,7 +142,22 @@ impl Opponent {
 
     // Evaluates what outcome of the game would be by selecting a specific position.
     //
-    // **Note** this is a recursive function.
+    // This function uses depth first search to examine all possible game outcomes
+    // based on the current state of the game board. The algorithm selects a free
+    // position then traverses the tree looking for one of the end game
+    // conditions: win, loss, or cat’s game. Once the end of the game is found,
+    // the result is propagated up the tree. The algorithm takes turns playing
+    // as each player and picks the best outcome for the given player.
+    //
+    // The depth search algorithm can see to the end of the game, thus it cannot
+    // be beat. The best possible outcome is a cat’s game. Therefore, the mistake
+    // probability is used to disregard parts of the solution tree giving human
+    // players a chance to win.
+    //
+    // # Notes
+    // * The time complexity of this function is O(n!) where n is the number of
+    //   free positions.
+    // * This is a recursive function.
     fn evaluate_position(
         &self,
         game: &game::Game,
@@ -163,6 +178,10 @@ impl Opponent {
         if self.should_make_mistake() {
             return Outcome::Unknown;
         }
+
+        // Check to see if this position is being considered for this AI instance
+        // or the if we are simulating the move for the other player.
+        let is_my_turn = ai_player == AIPlayer::from_game_state(game.state());
 
         // Clone the game so we can try out the move without modifying the original game.
         let mut game = game.clone();
@@ -185,7 +204,7 @@ impl Opponent {
 
         // The AI assumes the other player plays a perfect game, so return the
         // worst outcome that was found.
-        worst_outcome(&outcomes)
+        worst_outcome(&outcomes, is_my_turn)
     }
 
     // Indicates if the AI opponent should make a mistake by skipping examining
@@ -327,12 +346,21 @@ pub fn best_position<S: BuildHasher>(
 
 // Gets the worst possible outcome based on the provided outcomes.
 //
-// The ordering of outcomes returned are: `Loss`, `CatsGame`, `Win`.
+// The worst possible outcome depends on if is it the turn of this AI opponent
+// or if it is simulating the other player. The work outcome for this AI opponent
+// is `Loss`, `CatsGame`, `Win`. If it's the other player's turn the ordering is
+// reversed.
+//
 // `Unknown` is returned if the provided slice is empty or only contains unknown
 // outcomes.
-fn worst_outcome(outcomes: &HashSet<Outcome>) -> Outcome {
+fn worst_outcome(outcomes: &HashSet<Outcome>, is_my_turn: bool) -> Outcome {
     // Search through the outcomes, from worst to best, returning the first one found.
-    let worst_to_best_outcomes = [Outcome::Loss, Outcome::CatsGame, Outcome::Win];
+    let worst_to_best_outcomes = if is_my_turn {
+        [Outcome::Loss, Outcome::CatsGame, Outcome::Win]
+    } else {
+        [Outcome::Win, Outcome::CatsGame, Outcome::Loss]
+    };
+
     for outcome in worst_to_best_outcomes.iter() {
         if outcomes.contains(outcome) {
             return *outcome;
@@ -717,39 +745,76 @@ mod tests {
     #[test]
     fn worst_outcome_when_empty_should_be_unknown() {
         let outcomes = Default::default();
+        let is_my_turn = true;
         let expected_outcome = Outcome::Unknown;
 
-        let actual_outcome = worst_outcome(&outcomes);
+        let actual_outcome = worst_outcome(&outcomes, is_my_turn);
 
         assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
-    fn worst_outcome_when_win_and_loss_should_be_loss() {
+    fn worst_outcome_when_my_turn_with_win_and_loss_should_be_loss() {
         let outcomes = [Outcome::Win, Outcome::Loss].iter().cloned().collect();
+        let is_my_turn = true;
         let expected_outcome = Outcome::Loss;
 
-        let actual_outcome = worst_outcome(&outcomes);
+        let actual_outcome = worst_outcome(&outcomes, is_my_turn);
 
         assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
-    fn worst_outcome_when_cats_game_and_loss_should_be_loss() {
+    fn worst_outcome_when_my_turn_with_cats_game_and_loss_should_be_loss() {
         let outcomes = [Outcome::CatsGame, Outcome::Loss].iter().cloned().collect();
+        let is_my_turn = true;
         let expected_outcome = Outcome::Loss;
 
-        let actual_outcome = worst_outcome(&outcomes);
+        let actual_outcome = worst_outcome(&outcomes, is_my_turn);
 
         assert_eq!(expected_outcome, actual_outcome);
     }
 
     #[test]
-    fn worst_outcome_when_cats_game_and_cats_game_should_be_cats_game() {
+    fn worst_outcome_when_my_turn_with_cats_game_and_cats_game_should_be_cats_game() {
         let outcomes = [Outcome::Win, Outcome::CatsGame].iter().cloned().collect();
+        let is_my_turn = true;
         let expected_outcome = Outcome::CatsGame;
 
-        let actual_outcome = worst_outcome(&outcomes);
+        let actual_outcome = worst_outcome(&outcomes, is_my_turn);
+
+        assert_eq!(expected_outcome, actual_outcome);
+    }
+
+    #[test]
+    fn worst_outcome_when_not_my_turn_with_win_and_loss_should_be_win() {
+        let outcomes = [Outcome::Win, Outcome::Loss].iter().cloned().collect();
+        let is_my_turn = false;
+        let expected_outcome = Outcome::Win;
+
+        let actual_outcome = worst_outcome(&outcomes, is_my_turn);
+
+        assert_eq!(expected_outcome, actual_outcome);
+    }
+
+    #[test]
+    fn worst_outcome_when_not_my_turn_with_cats_game_and_loss_should_be_cats_game() {
+        let outcomes = [Outcome::CatsGame, Outcome::Loss].iter().cloned().collect();
+        let is_my_turn = false;
+        let expected_outcome = Outcome::CatsGame;
+
+        let actual_outcome = worst_outcome(&outcomes, is_my_turn);
+
+        assert_eq!(expected_outcome, actual_outcome);
+    }
+
+    #[test]
+    fn worst_outcome_when_not_my_turn_with_cats_game_and_cats_game_should_be_win() {
+        let outcomes = [Outcome::Win, Outcome::CatsGame].iter().cloned().collect();
+        let is_my_turn = false;
+        let expected_outcome = Outcome::Win;
+
+        let actual_outcome = worst_outcome(&outcomes, is_my_turn);
 
         assert_eq!(expected_outcome, actual_outcome);
     }
