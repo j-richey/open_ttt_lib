@@ -17,7 +17,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-open_ttt_lib = "0.1"
+open_ttt_lib = "0.1.0"
 ```
 
 Below is an example of using this library. Two AI opponents to play a game of
