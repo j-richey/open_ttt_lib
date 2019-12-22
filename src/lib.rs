@@ -49,7 +49,7 @@
 //! }
 //! ```
 
-#![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.1.1")]
 
 pub mod ai;
 pub mod board;

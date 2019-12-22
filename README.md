@@ -9,15 +9,12 @@
 Open source Rust library that provides common Tic Tac Toe logic that can be used
 by other Rust applications.
 
-:warning: This library is currently under development and has not yet been published
-to [crates.io](https://crates.io/).
-
 ## Usage
 Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-open_ttt_lib = "0.1.0"
+open_ttt_lib = "0.1.1"
 ```
 
 Below is an example of using this library. Two AI opponents to play a game of
