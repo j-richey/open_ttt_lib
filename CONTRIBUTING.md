@@ -59,7 +59,7 @@ rustup component add clippy
 Then run with:
 
 ```
-cargo clippy
+cargo clippy && cargo clippy --examples
 ```
 
 This will point out any problematic spots in the code. Please fix the indicated items.

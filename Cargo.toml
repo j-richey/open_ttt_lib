@@ -1,7 +1,7 @@
 [package]
 name = "open_ttt_lib"
 version = "0.1.1"
-authors = ["James Richey"]
+authors = ["James Richey <james.richey+open_ttt_lib@imaginaryphase.com>"]
 license = "MIT"
 description = "Library that provides common Tic Tac Toe logic."
 repository = "https://github.com/j-richey/open_ttt_lib.git"
