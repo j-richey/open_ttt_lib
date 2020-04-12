@@ -6,8 +6,8 @@
 [![Build Status](https://travis-ci.com/j-richey/open_ttt_lib.svg?branch=master)](https://travis-ci.com/j-richey/open_ttt_lib)
 [![Coverage Status](https://coveralls.io/repos/github/j-richey/open_ttt_lib/badge.svg?branch=master)](https://coveralls.io/github/j-richey/open_ttt_lib?branch=master)
 
-Open source Rust library that provides common Tic Tac Toe logic that can be used
-by other Rust applications.
+Open source Rust library containing common Tic Tac Toe functionality.
+
 
 ## Usage
 Add this to your `Cargo.toml`:
@@ -17,83 +17,69 @@ Add this to your `Cargo.toml`:
 open_ttt_lib = "0.1.1"
 ```
 
-Below is an example of using this library. Two AI opponents to play a game of
-Tic Tac Toe until one is victorious.
+See the library's [documentation](https://docs.rs/open_ttt_lib/) for complete
+details on the library's API.
+
+
+## Examples
+Below is an example of using this library.
 
 ```rust
-use open_ttt_lib::{ai, game};
+use open_ttt_lib::{ai, board, game};
 
 fn main() -> Result<(), Box<game::Error>> {
-    // Create a game and two AI opponents to play the game.
+    // Create a game to manage the game.
     let mut game = game::Game::new();
 
-    // Rando picks random positions.
-    let rando = ai::Opponent::new(1.0);
-    // The flawless opponent cannot loose: it fully evaluates every possible
-    // move and countermove to pick the best position.
-    let flawless_ai = ai::Opponent::new(0.0);
+    // Pick a position to place a mark.
+    let position = board::Position { row: 0, column: 0 };
+    game.do_move(position)?;
 
-    // Have the opponents take turns making moves until the game is over.
-    loop {
-        match game.state() {
-            game::State::PlayerXMove => {
-                println!("Rando playing as X turn:");
-                game.do_move(rando.get_move(&game).unwrap())?;
-            }
-            game::State::PlayerOMove => {
-                println!("Flawless AI playing as O turn:");
-                game.do_move(flawless_ai.get_move(&game).unwrap())?;
-            }
-            game::State::PlayerXWin(_) => {
-                println!("Game Over: Rando playing as X wins!");
-                break;
-            }
-            game::State::PlayerOWin(_) => {
-                println!("Game Over: Flawless AI playing as O wins!");
-                break;
-            }
-            game::State::CatsGame => {
-                println!("Game Over: cat's game.");
-                break;
-            }
-        };
+    // Get the state of the game to see who's turn it is or if the game is over.
+    match game.state() {
+        game::State::PlayerXMove => println!("X's turn."),
+        game::State::PlayerOMove => println!("O's turn."),
+        game::State::PlayerXWin(_) => println!("Game Over: X wins!"),
+        game::State::PlayerOWin(_) => println!("Game Over: O wins!"),
+        game::State::CatsGame => println!("Game Over: cat's game."),
+    };
 
-        // Print the game's the board.
-        println!("{}", game.board());
-    }
+    // Have an unbeatable opponent pick a move.
+    let mistake_probability = 0.0;
+    let opponent = ai::Opponent::new(mistake_probability);
+    if let Some(ai_position) = opponent.get_move(&game) {
+        game.do_move(ai_position)?;
+    };
 
     Ok(())
 }
 ```
 
-See the [documentation](https://docs.rs/open_ttt_lib/) for additional examples
-and details on using the library.
+The `examples` directory contains additional examples.
 
-### Benchmarks
+To run the examples, clone this repository then use `cargo run --example`. E.g:
+```text
+git clone https://github.com/j-richey/open_ttt_lib.git
+cd open_ttt_lib
+cargo run --example single-player
+```
+
+
+## Benchmarks
 This library includes benchmarks that you can use to evaluate if the library
-fits in with your performance goals. Use the following command to run the
-benchmark suite:
+fits in with your performance goals. Use `cargo bench` to run the benchmark
+suite:
 
 ```text
+git clone https://github.com/j-richey/open_ttt_lib.git
+cd open_ttt_lib
 cargo bench
 ```
 
 
-## Feature Requests
-Feel free to request new features. File a feature request describing the feature
-you would like and what benefit you will get from the feature. A user story is
-one way to capture this information:
-
-> As a **user** I want **goal/desire** so that **benefit**.
-
-
-## Reporting Issues
-If you find an issue please include the following information in your report:
-
-* Summary of the problem.
-* Steps to reproduce the issue or code snippet that demonstrates the issue.
-* The expected behavior.
-* Version of the library being used.
+## Reporting Issues and Feature Requests'
+Please report issues and feel free to request new features using this project's
+[GitHub issue tracker](https://github.com/j-richey/open_ttt_lib/issues).
 
 
 ## Contributing
