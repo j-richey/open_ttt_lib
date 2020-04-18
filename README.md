@@ -22,20 +22,24 @@ details on the library's API.
 
 
 ## Examples
-Below is an example of using this library.
+Below is a short example of using this library.
 
 ```rust
 use open_ttt_lib::{ai, board, game};
 
 fn main() -> Result<(), Box<game::Error>> {
-    // Create a game to manage the game.
+    // Create a game struct to manage the game.
     let mut game = game::Game::new();
 
-    // Pick a position to place a mark.
-    let position = board::Position { row: 0, column: 0 };
+    // Pick a position to place a mark. Positions are zero based.
+    // An error result is returned if the position is outside the bounds
+    // of the board, the position is already owned, or the game is over.
+    let position = board::Position { row: 0, column: 2 };
     game.do_move(position)?;
 
-    // Get the state of the game to see who's turn it is or if the game is over.
+    // do_move() updates the game state. The state indicates the player
+    // who gets to place to next mark or, if the game is over, the
+    // outcome of the game.
     match game.state() {
         game::State::PlayerXMove => println!("X's turn."),
         game::State::PlayerOMove => println!("O's turn."),
@@ -44,7 +48,7 @@ fn main() -> Result<(), Box<game::Error>> {
         game::State::CatsGame => println!("Game Over: cat's game."),
     };
 
-    // Have an unbeatable opponent pick a move.
+    // Have an unbeatable AI opponent pick a move.
     let mistake_probability = 0.0;
     let opponent = ai::Opponent::new(mistake_probability);
     if let Some(ai_position) = opponent.get_move(&game) {
@@ -61,7 +65,7 @@ To run the examples, clone this repository then use `cargo run --example`. E.g:
 ```text
 git clone https://github.com/j-richey/open_ttt_lib.git
 cd open_ttt_lib
-cargo run --example single-player
+cargo run --example single_player
 ```
 
 
@@ -77,7 +81,7 @@ cargo bench
 ```
 
 
-## Reporting Issues and Feature Requests'
+## Reporting Issues and Feature Requests
 Please report issues and feel free to request new features using this project's
 [GitHub issue tracker](https://github.com/j-richey/open_ttt_lib/issues).
 

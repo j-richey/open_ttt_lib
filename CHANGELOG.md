@@ -7,6 +7,14 @@ as described for Rust libraries in
 [RFC 1105](https://github.com/rust-lang/rfcs/blob/master/text/1105-api-evolution.md).
 
 
+## Upcoming release
+
+### Added
+* `single_player` example that shows how to use the library to create a complete
+  console based Tic Tac Toe game.
+* Include a brief overview on the rules of Tic Tac Toe the library documentation.
+
+
 ## [0.1.1] - 2019-12-22
 
 ### Fixed

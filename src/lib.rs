@@ -17,34 +17,38 @@
 //!
 //! # Example
 //! ```
-//! # use open_ttt_lib::game;
-//! # fn main() -> Result<(), Box<game::Error>> {
 //! use open_ttt_lib::{ai, board, game};
-//! // Create a game to manage the game.
-//! let mut game = game::Game::new();
 //!
-//! // Pick a position to place a mark.
-//! let position = board::Position { row: 0, column: 0 };
-//! game.do_move(position)?;
+//! fn main() -> Result<(), Box<game::Error>> {
+//!     // Create a game struct to manage the game.
+//!     let mut game = game::Game::new();
 //!
-//! // Get the state of the game to see who's turn it is or if the game is over.
-//! match game.state() {
-//!     game::State::PlayerXMove => println!("X's turn."),
-//!     game::State::PlayerOMove => println!("O's turn."),
-//!     game::State::PlayerXWin(_) => println!("Game Over: X wins!"),
-//!     game::State::PlayerOWin(_) => println!("Game Over: O wins!"),
-//!     game::State::CatsGame => println!("Game Over: cat's game."),
-//! };
+//!     // Pick a position to place a mark. Positions are zero based.
+//!     // An error result is returned if the position is outside the bounds
+//!     // of the board, the position is already owned, or the game is over.
+//!     let position = board::Position { row: 0, column: 2 };
+//!     game.do_move(position)?;
 //!
-//! // Have an unbeatable opponent pick a move.
-//! let mistake_probability = 0.0;
-//! let opponent = ai::Opponent::new(mistake_probability);
-//! if let Some(ai_position) = opponent.get_move(&game) {
-//!     game.do_move(ai_position)?;
+//!     // do_move() updates the game state. The state indicates the player
+//!     // who gets to place to next mark or, if the game is over, the
+//!     // outcome of the game.
+//!     match game.state() {
+//!         game::State::PlayerXMove => println!("X's turn."),
+//!         game::State::PlayerOMove => println!("O's turn."),
+//!         game::State::PlayerXWin(_) => println!("Game Over: X wins!"),
+//!         game::State::PlayerOWin(_) => println!("Game Over: O wins!"),
+//!         game::State::CatsGame => println!("Game Over: cat's game."),
+//!     };
+//!
+//!     // Have an unbeatable AI opponent pick a move.
+//!     let mistake_probability = 0.0;
+//!     let opponent = ai::Opponent::new(mistake_probability);
+//!     if let Some(ai_position) = opponent.get_move(&game) {
+//!         game.do_move(ai_position)?;
+//!     };
+//!
+//!     Ok(())
 //! }
-//!
-//! # Ok(())
-//! # }
 //! ```
 
 #![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.1.1")]
