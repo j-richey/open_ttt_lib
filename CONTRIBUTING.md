@@ -107,7 +107,31 @@ before sending a pull request:
 
 * Tests have been added for new code
 * Any new public APIs have been fully documented
-* Library builds with no warnings
+* Library builds without warnings
 * All tests pass
 * Clippy reports no problems
 * rustfmt has been run to automatically format the code
+
+
+## Creating Releases
+Maintainers, please follow this checklist to create a release and publish it to
+[crates.io](https://crates.io/).
+
+1. Ensure all changes are merged to master. Verify the README, library
+   documentation, and examples are updated and correct.
+2. Ensure the `CHANGELOG.md` describes all notable changes from the last release.
+3. Update the version number:
+   * `version` value in In `Cargo.toml`
+   * **Usage** section in `README.md`
+   * Set the version number and release date in `CHANGELOG.md`
+   * Edit the `html_root_url` attribute in `lib.rs`
+4. Ensure checks pass by running the following:
+   ```
+   cargo test
+   cargo clippy -- -D warnings
+   cargo fmt --all -- --check
+   ```
+5. Commit the changes and tag the commit with the version number.
+6. Preform a dry run of publishing the crate with `cargo publish --dry-run`.
+7. Publish the create with `cargo publish`.
+8. Push the git commit to GitHub and tags with `git push` and `git push --tags`.
