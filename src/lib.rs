@@ -1,49 +1,51 @@
-//! Provides common Tic Tac Toe logic and artificial intelligence algorithms.
+//! # Overview
+//! Tic Tac Toe is a game of strategy where two players, X and O, take turns
+//! placing their mark in a 3 x 3 gird. The first player to get three marks in a
+//! row, column, or diagonal wins the game. The game can also end in a draw,
+//! known as a *cat's game*.
 //!
-//! # Examples
-//! The example below creates a Tic Tac Toe game and two AI opponents to play
-//! the game.
+//! This library contains logic to enforce the rules of Tic Tac Toe, manage the
+//! game's state, and provides artificial intelligence algorithms for single
+//! player games.
+//!
+//! # Usage
+//! The [`Game`](game/struct.Game.html) structure is the central type provided
+//! by this crate. It enforces the rules and manages the
+//! [`State`](game/enum.State.html) of the game.
+//! The [`Opponent`](ai/struct.Opponent.html) structure provides support for
+//! single player games.
+//!
+//! # Example
 //! ```
-//! use open_ttt_lib::{ai, game};
+//! use open_ttt_lib::{ai, board, game};
 //!
 //! fn main() -> Result<(), Box<game::Error>> {
-//!     // Create a game and two AI opponents to play the game.
+//!     // Create a game struct to manage the game.
 //!     let mut game = game::Game::new();
 //!
-//!     // Rando picks random positions.
-//!     let rando = ai::Opponent::new(1.0);
-//!     // The flawless opponent cannot loose: it fully evaluates every possible
-//!     // move and countermove to pick the best position.
-//!     let flawless_ai = ai::Opponent::new(0.0);
+//!     // Pick a position to place a mark. Positions are zero based.
+//!     // An error result is returned if the position is outside the bounds
+//!     // of the board, the position is already owned, or the game is over.
+//!     let position = board::Position { row: 0, column: 2 };
+//!     game.do_move(position)?;
 //!
-//!     // Have the opponents take turns making moves until the game is over.
-//!     loop {
-//!         match game.state() {
-//!             game::State::PlayerXMove => {
-//!                 println!("Rando playing as X turn:");
-//!                 game.do_move(rando.get_move(&game).unwrap())?;
-//!             }
-//!             game::State::PlayerOMove => {
-//!                 println!("Flawless AI playing as O turn:");
-//!                 game.do_move(flawless_ai.get_move(&game).unwrap())?;
-//!             }
-//!             game::State::PlayerXWin(_) => {
-//!                 println!("Game Over: Rando playing as X wins!");
-//!                 break;
-//!             }
-//!             game::State::PlayerOWin(_) => {
-//!                 println!("Game Over: Flawless AI playing as O wins!");
-//!                 break;
-//!             }
-//!             game::State::CatsGame => {
-//!                 println!("Game Over: cat's game.");
-//!                 break;
-//!             }
-//!         };
+//!     // do_move() updates the game state. The state indicates the player
+//!     // who gets to place to next mark or, if the game is over, the
+//!     // outcome of the game.
+//!     match game.state() {
+//!         game::State::PlayerXMove => println!("X's turn."),
+//!         game::State::PlayerOMove => println!("O's turn."),
+//!         game::State::PlayerXWin(_) => println!("Game Over: X wins!"),
+//!         game::State::PlayerOWin(_) => println!("Game Over: O wins!"),
+//!         game::State::CatsGame => println!("Game Over: cat's game."),
+//!     };
 //!
-//!         // Print the game's the board.
-//!         println!("{}", game.board());
-//!     }
+//!     // Have an unbeatable AI opponent pick a move.
+//!     let mistake_probability = 0.0;
+//!     let opponent = ai::Opponent::new(mistake_probability);
+//!     if let Some(ai_position) = opponent.get_move(&game) {
+//!         game.do_move(ai_position)?;
+//!     };
 //!
 //!     Ok(())
 //! }

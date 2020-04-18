@@ -15,9 +15,11 @@ before_script:
   - rustup component add rustfmt
 
 script:
-  - RUSTFLAGS="-D warnings" cargo build --verbose
+  - RUSTFLAGS="-D warnings" cargo build --all-targets --verbose
   - cargo test --verbose
+  - cargo test --examples --verbose
   - cargo clippy -- -D warnings
+  - cargo clippy --examples -- -D warnings
   - cargo fmt --all -- --check
 
 jobs:
@@ -56,5 +58,5 @@ jobs:
     - rust: nightly
       os: linux
       script:
-       - RUSTFLAGS="-D warnings" cargo build --verbose
+       - RUSTFLAGS="-D warnings" cargo build --all-targets --verbose
        - cargo test --verbose
