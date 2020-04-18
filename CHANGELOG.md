@@ -7,7 +7,7 @@ as described for Rust libraries in
 [RFC 1105](https://github.com/rust-lang/rfcs/blob/master/text/1105-api-evolution.md).
 
 
-## Upcoming release
+## [0.1.2] - 2020-04-18
 
 ### Added
 * `single_player` example that shows how to use the library to create a complete
