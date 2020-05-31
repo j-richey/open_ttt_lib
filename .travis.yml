@@ -10,53 +10,36 @@ os:
   - osx
   - windows
 
-before_script:
-  - rustup component add clippy
-  - rustup component add rustfmt
-
-script:
-  - RUSTFLAGS="-D warnings" cargo build --all-targets --verbose
-  - cargo test --verbose
-  - cargo test --examples --verbose
-  - cargo clippy -- -D warnings
-  - cargo clippy --examples -- -D warnings
-  - cargo fmt --all -- --check
+addons:
+    apt:
+        packages:
+            - libssl-dev
 
 jobs:
   fast_finish: true
   allow_failures:
     - rust: nightly
-  # The stable Linux build uploads results to Coveralls.
-  exclude:
-    - rust: stable
-      os: linux
   include:
-    - rust: stable
-      os: linux
-      addons:
-        # Dependencies of kcov, used for cargo-travis.
-        apt:
-          packages:
-            - libcurl4-openssl-dev
-            - libelf-dev
-            - libdw-dev
-            - binutils-dev
-            - cmake
-          sources:
-            - kalakris-cmake
-      before_script:
-        # Install / update outdated cached binaries.
-        - export PATH=$HOME/.cargo/bin:$PATH
-        - cargo install cargo-update || echo "cargo-update already installed"
-        - cargo install cargo-travis || echo "cargo-travis already installed"
-        - cargo install-update -a
-        - rustup component add clippy
-        - rustup component add rustfmt
-      after_success:
-        - cargo coveralls
-    # A basic check is done for the nightly version of Rust
     - rust: nightly
       os: linux
-      script:
-       - RUSTFLAGS="-D warnings" cargo build --all-targets --verbose
-       - cargo test --verbose
+
+before_script: |
+  rustup component add clippy
+  rustup component add rustfmt
+
+  if [ "${TRAVIS_RUST_VERSION}" == stable ] && [ "${TRAVIS_OS_NAME}" == linux ]; then
+    cargo install cargo-tarpaulin
+  fi
+
+script: |
+  RUSTFLAGS="-D warnings" cargo build --all-targets --verbose
+  cargo test --verbose
+  cargo test --examples --verbose
+  cargo clippy -- -D warnings
+  cargo clippy --examples -- -D warnings
+  cargo fmt --all -- --check
+
+after_success: |
+  if [ "${TRAVIS_RUST_VERSION}" == stable ] && [ "${TRAVIS_OS_NAME}" == linux ]; then
+    cargo tarpaulin --ciserver travis-ci --coveralls ${TRAVIS_JOB_ID}
+  fi
