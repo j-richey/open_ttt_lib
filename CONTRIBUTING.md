@@ -47,6 +47,25 @@ In general, unit tests should conform to the following:
 
 See the existing unit tests for examples.
 
+### Test Coverage with Tarpaulin
+If you are developing on Linux with a x86_64 processor you can measure the
+test coverage using [tarpaulin](https://crates.io/crates/cargo-tarpaulin).
+
+Install tarpaulin with the following:
+```
+cargo install cargo-tarpaulin
+```
+
+Then run with:
+```
+cargo tarpaulin --out Html
+```
+
+Open the generated `tarpaulin-report.html` file in your browser to view test
+coverage data.
+
+This tool is also automatically run as part of the pull request process.
+
 
 ## Lint with Clippy
 We use [Clippy](https://github.com/rust-lang/rust-clippy) to catch common
