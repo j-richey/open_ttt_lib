@@ -121,12 +121,16 @@ impl Opponent {
     /// }
     /// ```
     pub fn evaluate_game(&self, game: &game::Game) -> HashMap<game::Position, Outcome> {
-        let mut outcomes = HashMap::new();
+        // Check if there is a cached result that saves us from reevaluating the game,
+        // otherwise we evaluate the outcome of each position.
+        if let Some(outcomes) = self.get_cached_outcomes(&game) {
+            outcomes
+        } else {
+            let mut outcomes = HashMap::new();
 
-        // We only evaluate the game if it is not over as if the game is over we
-        // cannot determine which player the AI is playing as.
-        if !game.state().is_game_over() {
-            // Determine which player the AI is playing as.
+            // Determine which player the AI is playing as. Note: we can only
+            // determine the AI player if the game is not over, thus we rely on
+            // the get_cached_result() call above to handle game over conditions.
             let ai_player = AIPlayer::from_game_state(game.state());
 
             // For each free square, evaluate the consequences of using that
@@ -135,9 +139,9 @@ impl Opponent {
                 let outcome = self.evaluate_position(&game, position, ai_player);
                 outcomes.insert(position, outcome);
             }
-        }
 
-        outcomes
+            outcomes
+        }
     }
 
     // Evaluates what outcome of the game would be by selecting a specific position.
@@ -193,12 +197,20 @@ impl Opponent {
             return Outcome::from_game_state(state, ai_player);
         }
 
-        // The game is not over, to evaluate each of the remaining free squares.
+        // The game is not over, to evaluate each of the remaining free squares
+        // looking for the worst outcome for the AI player. We return early if
+        // the worst outcome is found as there is no need to continue evaluating
+        // the tree saving a lot of CPU cycles.
         // Note: the game automatically takes care of switching between each
         // player's turn.
         let mut outcomes = HashSet::new();
         for free_position in game.free_positions() {
             let outcome = self.evaluate_position(&game, free_position, ai_player);
+
+            if is_worst_outcome(outcome, is_my_turn) {
+                return outcome;
+            }
+
             outcomes.insert(outcome);
         }
 
@@ -213,6 +225,29 @@ impl Opponent {
         // Use a random number generator to get a boolean per the mistake probability.
         rand::thread_rng().gen_bool(self.mistake_probability)
     }
+
+    // Gets a cached collection of outcomes based on the provided game.
+    // None is returned if there are no cached outcomes for the provided game.
+    //
+    // Using cached outcomes helps speed up evaluating the game. However, we
+    // want some random behavior from the AI we allow the AI to make mistakes
+    // we only cache key outcomes. This provides a balance of evaluation speed
+    // while keeping the AI interesting and human like.
+    fn get_cached_outcomes(&self, game: &game::Game) -> Option<HashMap<game::Position, Outcome>> {
+        if game.state().is_game_over() {
+            // For games that are over an empty map is returned.
+            Some(HashMap::new())
+        } else if is_new_game(&game) {
+            // For new games we know that the worst outcome for every position
+            // is a cat's game --- if this were not the case then the game would
+            // no tbe fair.
+            let outcomes =
+                initialize_free_position_outcomes(game.free_positions(), Outcome::CatsGame);
+            Some(outcomes)
+        } else {
+            None
+        }
+    }
 }
 
 /// Represents a game outcome for the AI opponent.
@@ -221,7 +256,7 @@ pub enum Outcome {
     /// The AI player wins the game.
     Win,
 
-    /// The AI player looses the game.
+    /// The AI player loses the game.
     Loss,
 
     /// The game results in a cats game.
@@ -344,24 +379,47 @@ pub fn best_position<S: BuildHasher>(
     None
 }
 
-// Gets the worst possible outcome based on the provided outcomes.
+// Initializes the outcomes for the provided positions to the specified value.
+fn initialize_free_position_outcomes(
+    free_positions: game::FreePositions,
+    outcome: Outcome,
+) -> HashMap<game::Position, Outcome> {
+    let mut outcomes = HashMap::new();
+    for position in free_positions {
+        outcomes.insert(position, outcome);
+    }
+
+    outcomes
+}
+
+// Gets an array of worst to best game outcomes for the AI player .
 //
 // The worst possible outcome depends on if is it the turn of this AI opponent
 // or if it is simulating the other player. The work outcome for this AI opponent
 // is `Loss`, `CatsGame`, `Win`. If it's the other player's turn the ordering is
 // reversed.
+fn worst_to_best_outcomes(is_my_turn: bool) -> [Outcome; 3] {
+    if is_my_turn {
+        [Outcome::Loss, Outcome::CatsGame, Outcome::Win]
+    } else {
+        [Outcome::Win, Outcome::CatsGame, Outcome::Loss]
+    }
+}
+
+// Returns true if the provided outcome is the worst outcome for the AI opponent,
+// otherwise false is returned,
+fn is_worst_outcome(outcome: Outcome, is_my_turn: bool) -> bool {
+    const WORST_OUTCOME_INDEX: usize = 0;
+    worst_to_best_outcomes(is_my_turn)[WORST_OUTCOME_INDEX] == outcome
+}
+
+// Gets the worst possible outcome based on the provided outcomes.
 //
 // `Unknown` is returned if the provided slice is empty or only contains unknown
 // outcomes.
 fn worst_outcome(outcomes: &HashSet<Outcome>, is_my_turn: bool) -> Outcome {
     // Search through the outcomes, from worst to best, returning the first one found.
-    let worst_to_best_outcomes = if is_my_turn {
-        [Outcome::Loss, Outcome::CatsGame, Outcome::Win]
-    } else {
-        [Outcome::Win, Outcome::CatsGame, Outcome::Loss]
-    };
-
-    for outcome in worst_to_best_outcomes.iter() {
+    for outcome in worst_to_best_outcomes(is_my_turn).iter() {
         if outcomes.contains(outcome) {
             return *outcome;
         }
@@ -369,6 +427,15 @@ fn worst_outcome(outcomes: &HashSet<Outcome>, is_my_turn: bool) -> Outcome {
 
     // None of the other outcomes were found so return unknown.
     Outcome::Unknown
+}
+
+// Returns true if the provided game is a new game; that is all positions are
+// free.
+fn is_new_game(game: &game::Game) -> bool {
+    let board_size = game.board().size();
+    let total_positions = board_size.columns * board_size.rows;
+
+    game.free_positions().count() as i32 == total_positions
 }
 
 #[allow(non_snake_case)]
@@ -478,6 +545,24 @@ mod tests {
         assert_eq!(
             expected_position,
             actual_position,
+            "\nGame board used for this test: \n{}",
+            game.board()
+        );
+    }
+
+    #[test]
+    fn opponent_evaluate_game_when_new_game_should_be_cats_game_for_all_positions() {
+        let game = game::Game::new();
+        let mistake_probability = 0.0;
+        let opponent = Opponent::new(mistake_probability);
+        let expected_outcomes =
+            initialize_free_position_outcomes(game.free_positions(), Outcome::CatsGame);
+
+        let actual_outcomes = opponent.evaluate_game(&game);
+
+        assert_eq!(
+            expected_outcomes,
+            actual_outcomes,
             "\nGame board used for this test: \n{}",
             game.board()
         );
@@ -817,5 +902,18 @@ mod tests {
         let actual_outcome = worst_outcome(&outcomes, is_my_turn);
 
         assert_eq!(expected_outcome, actual_outcome);
+    }
+
+    #[test]
+    fn initialize_free_position_outcomes_should_set_indicated_outcome() {
+        let game = game::Game::new();
+        let expected_outcome = Outcome::Win;
+
+        let actual_outcomes =
+            initialize_free_position_outcomes(game.free_positions(), expected_outcome);
+
+        assert!(actual_outcomes
+            .iter()
+            .all(|(_position, outcome)| *outcome == expected_outcome));
     }
 }
