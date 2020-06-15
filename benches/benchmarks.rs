@@ -70,8 +70,8 @@ fn perfect_ai_moves_benchmarks(c: &mut Criterion) {
 criterion_group!(game_bench, complete_game_benchmark);
 
 criterion_group!(
-    name = perfect_ai_bench; 
-    config = Criterion::default().sample_size(10); 
+    name = perfect_ai_bench;
+    config = Criterion::default().sample_size(50);
     targets = perfect_ai_moves_benchmarks);
 
 criterion_main!(game_bench, perfect_ai_bench);

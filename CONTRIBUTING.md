@@ -147,6 +147,7 @@ Maintainers, please follow this checklist to create a release and publish it to
 4. Ensure checks pass by running the following:
    ```
    cargo test
+   cargo test --release -- --ignored
    cargo clippy -- -D warnings
    cargo fmt --all -- --check
    ```

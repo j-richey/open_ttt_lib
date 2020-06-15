@@ -20,7 +20,7 @@ characters are used for the game board's display:
   X - Player 'X' owns the square.
   O - Player 'O' owns the square.
   w - The AI opponent will win if it places its mark at this location.
-  l - The AI opponent could loose if it places its mark at this location.
+  l - The AI opponent could lose if it places its mark at this location.
   c - This location leads to a cat's game --- neither player wins.
   ? - The AI opponent could not determine the outcome of this location.
 
