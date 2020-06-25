@@ -250,6 +250,136 @@ impl Opponent {
     }
 }
 
+/// Selects the difficulty used by the [`Opponent`](struct.Opponent.html).
+///
+/// The exact behavior of `Easy`, `Medium`, and `Hard` difficulties are set via
+/// play testing and are subject to adjustment in future library versions.
+pub enum Difficulty {
+    /// The `Opponent` picks random positions and does not actually evaluate the
+    ///  game.
+    None,
+
+    /// Intended for players who are new to tic-tac-toe to learn the rules of
+    /// the game. The `Opponent` mostly picks random squares, but occasionally
+    /// goes for the win or blocks the player from winning.
+    Easy,
+
+    /// Medium difficulty is for players who have some experience with
+    /// tic-tac-toe. The AI provides a challenge to the player but games are
+    /// still winnable, especially if the player plans several moves ahead.
+    Medium,
+
+    /// At hard difficulty the computer plays almost perfect games. The player
+    /// must capitalize on rare mistakes made by the computer to win. This is
+    /// the recommended difficulty for experienced tic-tac-toe players.
+    Hard,
+
+    /// The `Opponent` plays perfect games and cannot loose. The best outcome
+    /// for the player is a cat's game.
+    Unbeatable,
+
+    /// Provides full control over the `Opponent`'s difficulty via the provided
+    /// function.
+    ///
+    /// The AI algorithm selects a free position then traverses the tree of all
+    /// possible moves looking for one of the end game conditions: *win*, *loss*,
+    /// or *cat's game*. The provided function is invoked before processing each
+    /// node in the outcome tree. Return `true` to evaluate the node. Return
+    /// `false` to stop processing the node, and all child nodes thus preventing
+    /// the algorithm from considering the outcomes from that branch of the tree.
+    ///
+    /// The depth of the node being considered is provided as the function's
+    /// parameter so the custom difficulty can take into account how many moves
+    /// ahead the `Opponent` is looking ahead. E.g. the `Opponent` could be more
+    /// likely to make mistakes the farther ahead it looks. The depth starts at
+    /// zero.
+    ///
+    /// # Notes
+    /// The number of nodes to evaluate for a game can be large resulting in
+    /// the provided function being invoked many times when evaluating a game.
+    ///
+    /// # Examples
+    /// Implement custom difficulties with the same behavior as the `None` and
+    /// `Unbeatable` variants:
+    /// ```
+    /// use open_ttt_lib::ai;
+    /// let same_as_none = ai::Difficulty::Custom(|_| false);
+    /// let same_as_unbeatable = ai::Difficulty::Custom(|_| true);
+    /// ```
+    ///
+    /// Create a custom difficulty that is perfect when looking at the current
+    /// move and has a fixed probability of failing to consider deeper parts
+    /// of the tree.
+    /// ```
+    /// use rand::Rng;
+    /// use open_ttt_lib::ai;
+    ///
+    /// fn should_evaluate_node(depth: i32) -> bool {
+    ///     if depth == 0 {
+    ///         true
+    ///     } else {
+    ///         let evaluate_node_probability = 0.8;
+    ///         rand::thread_rng().gen_bool(evaluate_node_probability)
+    ///     }
+    /// }
+    ///
+    /// let custom_difficulty = ai::Difficulty::Custom(should_evaluate_node);
+    /// ```
+    Custom(fn(i32) -> bool),
+}
+
+impl Difficulty {
+    // Based on the difficulty and current depth of the outcome tree,
+    // indicates if the `Opponent` should evaluate the current node.
+    fn should_evaluate_node(&self, depth: i32) -> bool {
+        match self {
+            Difficulty::None => Difficulty::none_should_evaluate_node(),
+            Difficulty::Easy => Difficulty::easy_should_evaluate_node(depth),
+            Difficulty::Medium => Difficulty::medium_should_evaluate_node(depth),
+            Difficulty::Hard => Difficulty::hard_should_evaluate_node(depth),
+            Difficulty::Unbeatable => Difficulty::unbeatable_should_evaluate_node(),
+            Difficulty::Custom(custom_should_evaluate_node) => custom_should_evaluate_node(depth),
+        }
+    }
+
+    // None does not evaluate any nodes, thus making the opponent pick a random
+    // position.
+    fn none_should_evaluate_node() -> bool {
+        false
+    }
+
+    // Easy has a 50/50 chance of going for a win or blocking a loss. Otherwise,
+    // it does not evaluate the tree.
+    fn easy_should_evaluate_node(depth: i32) -> bool {
+        if depth == 0 {
+            rand::thread_rng().gen_bool(0.5)
+        } else {
+            false
+        }
+    }
+
+    // Medium high chance of going for the win or blocking a loss. However, as
+    // the tree gets deeper it is more likely not evaluate that part of the tree.
+    fn medium_should_evaluate_node(_depth: i32) -> bool {
+        rand::thread_rng().gen_bool(0.8)
+    }
+
+    // Hard looks several moves ahead. Past that there is a small chance if it
+    // not evaluating a node.
+    fn hard_should_evaluate_node(depth: i32) -> bool {
+        if depth <= 1 {
+            true
+        } else {
+            rand::thread_rng().gen_bool(0.95)
+        }
+    }
+
+    // Unbeatable evaluates all nodes causing the opponent to play a perfect game.
+    fn unbeatable_should_evaluate_node() -> bool {
+        false
+    }
+}
+
 /// Represents a game outcome for the AI opponent.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Outcome {
@@ -741,6 +871,20 @@ mod tests {
              that needs addressed in the code as the requirement of picking \
              random positions is not being fulfilled."
         );
+    }
+
+    #[test]
+    fn difficulty_when_custom_should_call_provided_function() {
+        // To ensure our custom function is called, we create a function that
+        // returns true only when a specific depth value is provided.
+        const TRUE_DEPTH_VALUE: i32 = 42_000;
+        let custom_difficulty = Difficulty::Custom(|depth| depth == TRUE_DEPTH_VALUE);
+
+        // Try calling our custom function twice, once with the specific value
+        // and once without it. The ensures one of the predefined difficulty
+        // functions is not being called.
+        assert!(custom_difficulty.should_evaluate_node(TRUE_DEPTH_VALUE));
+        assert!(!custom_difficulty.should_evaluate_node(0));
     }
 
     #[test]
