@@ -40,9 +40,8 @@
 //!         game::State::CatsGame => println!("Game Over: cat's game."),
 //!     };
 //!
-//!     // Have an unbeatable AI opponent pick a move.
-//!     let mistake_probability = 0.0;
-//!     let opponent = ai::Opponent::new(mistake_probability);
+//!     // Have an AI opponent pick a move.
+//!     let opponent = ai::Opponent::new(ai::Difficulty::Medium);
 //!     if let Some(ai_position) = opponent.get_move(&game) {
 //!         game.do_move(ai_position)?;
 //!     };

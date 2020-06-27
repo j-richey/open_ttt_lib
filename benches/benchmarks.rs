@@ -44,13 +44,12 @@ fn complete_game_benchmark(c: &mut Criterion) {
     });
 }
 
-// Creates a perfect AI opponent then benchmarks for various numbers of free
+// Creates an unbeatable AI opponent then benchmarks for various numbers of free
 // spaces remaining.
 fn perfect_ai_moves_benchmarks(c: &mut Criterion) {
     let mut game = game::Game::new();
 
-    let mistake_probability = 0.0;
-    let ai_opponent = ai::Opponent::new(mistake_probability);
+    let ai_opponent = ai::Opponent::new(ai::Difficulty::Unbeatable);
 
     // Loop through each position first benchmarking how long the AI takes to
     // select a position, doing the actual move with the predetermined position

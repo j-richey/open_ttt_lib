@@ -1,15 +1,16 @@
 use open_ttt_lib::{ai, game};
 
-// Ensures the flawless AI never loses.
+// Ensures the unbeatable opponent never loses.
 //
-// The flawless AI fully evaluates every possible move and countermove to pick
-// the best position. However, if there is an issue, it might lose to a random
-// AI. This test plays several games to ensure the flawless AI does not lose.
+// The unbeatable opponent fully evaluates every possible move and countermove
+// to pick the best position. However, if there is an issue, it might lose to a
+// random opponent. This test plays several games to ensure the unbeatable
+// opponent does not lose.
 //
 // This test could take a while to exercise so it is disabled by default.
 #[test]
 #[ignore]
-fn flawless_ai_should_never_lose() {
+fn unbeatable_position_should_never_lose() {
     // The number of games to play. A larger number makes the test take longer
     // to run, but due to the random nature of the test, more likely to find
     // any possible issues.
@@ -17,8 +18,8 @@ fn flawless_ai_should_never_lose() {
 
     let mut game = game::Game::new();
 
-    let random_ai = ai::Opponent::new(1.0);
-    let flawless_ai = ai::Opponent::new(0.0);
+    let random_ai = ai::Opponent::new(ai::Difficulty::None);
+    let unbeatable_ai = ai::Opponent::new(ai::Difficulty::Unbeatable);
 
     for _ in 0..NUM_GAMES {
         let mut move_log = Vec::new();
@@ -30,13 +31,13 @@ fn flawless_ai_should_never_lose() {
                     game.do_move(position).unwrap();
                 }
                 game::State::PlayerOMove => {
-                    let position = flawless_ai.get_move(&game).unwrap();
-                    move_log.push(format!("  Flawless AI as O: {:?}", position));
+                    let position = unbeatable_ai.get_move(&game).unwrap();
+                    move_log.push(format!("  Unbeatable AI as O: {:?}", position));
                     game.do_move(position).unwrap();
                 }
                 game::State::PlayerXWin(_) => {
                     panic!(
-                        "\nThe random AI has won over the flawless AI. \
+                        "\nThe random AI has won over the unbeatable AI. \
                         \n\nList of moves: \n{}\n \
                         \nThe final game board: \n{}\n",
                         move_log.join("\n"),
