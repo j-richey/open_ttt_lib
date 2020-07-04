@@ -60,6 +60,10 @@ fn evaluate_difficulty(difficulty: ai::Difficulty) {
     );
 }
 
+// Has AI opponents of the provided difficulties play a series of games counting
+// the wins for each player. Depending on the number of games being played, this
+// function might take a while, so the progress of the battle is occasionally
+// printed.
 fn battle(
     player_x_difficulty: ai::Difficulty,
     player_o_difficulty: ai::Difficulty,
