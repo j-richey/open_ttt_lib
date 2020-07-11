@@ -6,7 +6,7 @@
 //! use open_ttt_lib::game;
 //!
 //! let game = game::Game::new();
-//! let ai_opponent = ai::Opponent::new(0.0);
+//! let ai_opponent = ai::Opponent::new(ai::Difficulty::Hard);
 //!
 //! match ai_opponent.get_move(&game) {
 //!     Some(position) => assert!(game.can_move(position)),
@@ -26,48 +26,31 @@ use crate::game;
 ///
 /// This can be used to create single player games or implement a hint system
 /// for human users.
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Opponent {
-    mistake_probability: f64,
+    difficulty: Difficulty,
 }
 
 impl Opponent {
-    /// Constructs a new AI opponent.
-    ///
-    /// The mistake probability indicates how likely the AI will fail to consider
-    /// various situations. A value of 0.0 makes the AI play a perfect game.
-    /// A value of 1.0 causes the AI to always pick a random position. Values
-    /// less than 0.0 are set to 0.0 and values greater than 1.0 are set to 1.0.
+    /// Constructs a new AI opponent using the provided difficulty.
     ///
     /// # Examples
     ///
-    /// Construct an unbeatable AI opponent:
+    /// Construct a hard AI opponent:
     /// ```
     /// use open_ttt_lib::ai;
     ///
-    /// let mistake_probability = 0.0;
-    /// let unbeatable_opponent = ai::Opponent::new(mistake_probability);
+    /// let hard_opponent = ai::Opponent::new(ai::Difficulty::Hard);
     /// ```
     ///
-    /// Construct an AI opponent that randomly picks a position:
+    /// Construct an AI opponent that randomly picks positions:
     /// ```
     /// use open_ttt_lib::ai;
     ///
-    /// let mistake_probability = 1.0;
-    /// let rando = ai::Opponent::new(mistake_probability);
+    /// let rando = ai::Opponent::new(ai::Difficulty::None);
     /// ```
-    pub fn new(mistake_probability: f64) -> Self {
-        // Make sure the mistake probability is within the expected range.
-        let mistake_probability = if mistake_probability < 0.0 {
-            0.0
-        } else if mistake_probability > 1.0 {
-            1.0
-        } else {
-            mistake_probability
-        };
-
-        Self {
-            mistake_probability,
-        }
+    pub fn new(difficulty: Difficulty) -> Self {
+        Self { difficulty }
     }
 
     /// Gets the position the AI opponent wishes to move based on the provided game.
@@ -81,7 +64,7 @@ impl Opponent {
     /// use open_ttt_lib::game;
     ///
     /// let game = game::Game::new();
-    /// let ai_opponent = ai::Opponent::new(0.0);
+    /// let ai_opponent = ai::Opponent::new(ai::Difficulty::Medium);
     ///
     /// match ai_opponent.get_move(&game) {
     ///     Some(position) => assert!(game.can_move(position)),
@@ -110,7 +93,7 @@ impl Opponent {
     /// use open_ttt_lib::game;
     ///
     /// let game = game::Game::new();
-    /// let ai_opponent = ai::Opponent::new(0.0);
+    /// let ai_opponent = ai::Opponent::new(ai::Difficulty::Medium);
     ///
     /// let outcomes = ai_opponent.evaluate_game(&game);
     ///
@@ -136,7 +119,7 @@ impl Opponent {
             // For each free square, evaluate the consequences of using that
             // square. The outcome for each position and the position is recorded.
             for position in game.free_positions() {
-                let outcome = self.evaluate_position(&game, position, ai_player);
+                let outcome = self.evaluate_position(&game, position, ai_player, 0);
                 outcomes.insert(position, outcome);
             }
 
@@ -154,9 +137,9 @@ impl Opponent {
     // as each player and picks the best outcome for the given player.
     //
     // The depth search algorithm can see to the end of the game, thus it cannot
-    // be beat. The best possible outcome is a cat’s game. Therefore, the mistake
-    // probability is used to disregard parts of the solution tree giving human
-    // players a chance to win.
+    // be beat. The best possible outcome is a cat’s game. Therefore, the AI's
+    // difficulty is checked to see if the current node should be evaluated.
+    // Disregarding parts of the solution tree gives human players a chance to win.
     //
     // # Notes
     // * The time complexity of this function is O(n!) where n is the number of
@@ -167,7 +150,19 @@ impl Opponent {
         game: &game::Game,
         position: game::Position,
         ai_player: AIPlayer,
+        depth: i32,
     ) -> Outcome {
+        // Since this is a recursive function, ensure we have not made a mistake
+        // that has lead to us trying to recursive too deep, a sign of potential
+        // infinite recursion that can cause a stack overflow.
+        const MAX_RECURSION_DEPTH: i32 = 20;
+        assert!(
+            depth <= MAX_RECURSION_DEPTH,
+            "The AI algorithm has reached the maximum recursion limit of {} and \
+             cannot continue to evaluate the game. This condition is the result \
+             of a bug in the open_ttt_lib used by this application.",
+            depth
+        );
         debug_assert!(
             game.can_move(position),
             "Cannot move into the provided position, {:?}. Thus, the position \
@@ -177,9 +172,8 @@ impl Opponent {
             position
         );
 
-        // Check to see if the AI should make a mistake. If so, don't consider
-        // this position.
-        if self.should_make_mistake() {
+        // Ask the difficulty if this node should actually be evaluated.
+        if !self.difficulty.should_evaluate_node(depth) {
             return Outcome::Unknown;
         }
 
@@ -205,7 +199,7 @@ impl Opponent {
         // player's turn.
         let mut outcomes = HashSet::new();
         for free_position in game.free_positions() {
-            let outcome = self.evaluate_position(&game, free_position, ai_player);
+            let outcome = self.evaluate_position(&game, free_position, ai_player, depth + 1);
 
             if is_worst_outcome(outcome, is_my_turn) {
                 return outcome;
@@ -217,13 +211,6 @@ impl Opponent {
         // The AI assumes the other player plays a perfect game, so return the
         // worst outcome that was found.
         worst_outcome(&outcomes, is_my_turn)
-    }
-
-    // Indicates if the AI opponent should make a mistake by skipping examining
-    // part of the tree.
-    fn should_make_mistake(&self) -> bool {
-        // Use a random number generator to get a boolean per the mistake probability.
-        rand::thread_rng().gen_bool(self.mistake_probability)
     }
 
     // Gets a cached collection of outcomes based on the provided game.
@@ -247,6 +234,144 @@ impl Opponent {
         } else {
             None
         }
+    }
+}
+
+/// Selects the difficulty used by the [`Opponent`](struct.Opponent.html).
+///
+/// The exact behavior of `Easy`, `Medium`, and `Hard` difficulties are set via
+/// play testing and are subject to adjustment in future library versions.
+#[derive(Debug, Copy, Clone, PartialEq, Hash)]
+pub enum Difficulty {
+    /// The `Opponent` picks random positions and does not actually evaluate the
+    /// game.
+    None,
+
+    /// Intended for players who are new to tic-tac-toe to learn the rules of
+    /// the game. The `Opponent` mostly picks random squares, but occasionally
+    /// goes for the win or blocks the player from winning.
+    Easy,
+
+    /// Medium difficulty is for players who have some experience with
+    /// tic-tac-toe. The AI provides a challenge to the player but games are
+    /// still winnable, especially if the player plans several moves ahead.
+    Medium,
+
+    /// At hard difficulty the computer plays almost perfect games. The player
+    /// must capitalize on rare mistakes made by the computer to win. This is
+    /// the recommended difficulty for experienced tic-tac-toe players.
+    Hard,
+
+    /// The `Opponent` plays perfect games and cannot loose. The best outcome
+    /// for the player is a cat's game.
+    Unbeatable,
+
+    /// Provides full control over the `Opponent`'s difficulty via the provided
+    /// function.
+    ///
+    /// The AI algorithm selects a free position then traverses the tree of all
+    /// possible moves looking for one of the end game conditions: *win*, *loss*,
+    /// or *cat's game*. The provided function is invoked before processing each
+    /// node in the outcome tree. Return `true` to evaluate the node. Return
+    /// `false` to stop processing the node, and all child nodes thus preventing
+    /// the algorithm from considering the outcomes from that branch of the tree.
+    ///
+    /// The depth of the node being considered is provided as the function's
+    /// parameter so the custom difficulty can take into account how many moves
+    /// ahead the `Opponent` is looking ahead. E.g. the `Opponent` could be more
+    /// likely to make mistakes the farther ahead it looks. The depth starts at
+    /// zero.
+    ///
+    /// # Notes
+    /// * The number of nodes to evaluate for a game can be large resulting in
+    ///   the provided function being invoked many times when evaluating a game.
+    /// * The AI algorithms contain speed optimizations such that evaluating
+    ///   part or all of the outcome tree might be skipped thus skipping calling
+    ///   the provided function.
+    ///
+    /// # Examples
+    /// Implement custom difficulties with the same behavior as the `None` and
+    /// `Unbeatable` variants:
+    /// ```
+    /// use open_ttt_lib::ai;
+    /// let same_as_none = ai::Difficulty::Custom(|_| false);
+    /// let same_as_unbeatable = ai::Difficulty::Custom(|_| true);
+    /// ```
+    ///
+    /// Create a custom difficulty that is perfect when looking at the current
+    /// move and has a fixed probability of failing to consider deeper parts
+    /// of the tree.
+    /// ```
+    /// use rand::Rng;
+    /// use open_ttt_lib::ai;
+    ///
+    /// fn should_evaluate_node(depth: i32) -> bool {
+    ///     if depth == 0 {
+    ///         true
+    ///     } else {
+    ///         let evaluate_node_probability = 0.8;
+    ///         rand::thread_rng().gen_bool(evaluate_node_probability)
+    ///     }
+    /// }
+    ///
+    /// let custom_difficulty = ai::Difficulty::Custom(should_evaluate_node);
+    /// ```
+    Custom(fn(depth: i32) -> bool),
+}
+
+impl Difficulty {
+    // Based on the difficulty and current depth of the outcome tree,
+    // indicates if the `Opponent` should evaluate the current node.
+    fn should_evaluate_node(&self, depth: i32) -> bool {
+        match self {
+            Difficulty::None => Difficulty::none_should_evaluate_node(),
+            Difficulty::Easy => Difficulty::easy_should_evaluate_node(depth),
+            Difficulty::Medium => Difficulty::medium_should_evaluate_node(depth),
+            Difficulty::Hard => Difficulty::hard_should_evaluate_node(depth),
+            Difficulty::Unbeatable => Difficulty::unbeatable_should_evaluate_node(),
+            Difficulty::Custom(custom_should_evaluate_node) => custom_should_evaluate_node(depth),
+        }
+    }
+
+    // None does not evaluate any nodes, thus making the opponent pick a random
+    // position.
+    fn none_should_evaluate_node() -> bool {
+        false
+    }
+
+    // Easy has a 50/50 chance of going for a win or blocking a loss. Otherwise,
+    // it does not evaluate the tree.
+    fn easy_should_evaluate_node(depth: i32) -> bool {
+        if depth == 0 {
+            rand::thread_rng().gen_bool(0.5)
+        } else {
+            false
+        }
+    }
+
+    // Medium high chance of going for the win or blocking a loss. However, as
+    // the tree gets deeper it is more likely not evaluate that part of the tree.
+    fn medium_should_evaluate_node(depth: i32) -> bool {
+        if depth == 0 {
+            rand::thread_rng().gen_bool(0.9)
+        } else {
+            rand::thread_rng().gen_bool(0.75)
+        }
+    }
+
+    // Hard looks several moves ahead. Past that there is a small chance if it
+    // not evaluating a node.
+    fn hard_should_evaluate_node(depth: i32) -> bool {
+        if depth <= 1 {
+            true
+        } else {
+            rand::thread_rng().gen_bool(0.97)
+        }
+    }
+
+    // Unbeatable evaluates all nodes causing the opponent to play a perfect game.
+    fn unbeatable_should_evaluate_node() -> bool {
+        true
     }
 }
 
@@ -330,7 +455,7 @@ impl AIPlayer {
 /// use open_ttt_lib::game;
 ///
 /// let game = game::Game::new();
-/// let ai_opponent = ai::Opponent::new(0.0);
+/// let ai_opponent = ai::Opponent::new(ai::Difficulty::Medium);
 ///
 /// let outcomes = ai_opponent.evaluate_game(&game);
 ///
@@ -494,32 +619,20 @@ mod tests {
     }
 
     #[test]
-    fn opponent_new_mistake_probability_less_than_zero_should_be_set_to_zero() {
-        let provided_mistake_probability = -1.0;
-        let expected_mistake_probability = 0.0;
+    fn opponent_new_should_set_difficulty() {
+        let expected_difficulty = Difficulty::Medium;
 
-        let opponent = Opponent::new(provided_mistake_probability);
-        let actual_mistake_probability = opponent.mistake_probability;
+        let opponent = Opponent::new(expected_difficulty);
+        let actual_difficulty = opponent.difficulty;
 
-        assert_eq!(expected_mistake_probability, actual_mistake_probability);
-    }
-
-    #[test]
-    fn opponent_new_mistake_probability_greater_than_one_should_be_set_to_one() {
-        let provided_mistake_probability = 2.0;
-        let expected_mistake_probability = 1.0;
-
-        let opponent = Opponent::new(provided_mistake_probability);
-        let actual_mistake_probability = opponent.mistake_probability;
-
-        assert_eq!(expected_mistake_probability, actual_mistake_probability);
+        assert_eq!(expected_difficulty, actual_difficulty);
     }
 
     #[test]
     fn opponent_get_move_when_game_is_over_should_be_none() {
         // Create a game where the game is over.
         let game = create_game(&PLAYER_X_WIN);
-        let opponent = Opponent::new(0.0);
+        let opponent = Opponent::new(Difficulty::None);
         let expected_position = None;
 
         let actual_position = opponent.get_move(&game);
@@ -533,11 +646,11 @@ mod tests {
     }
 
     #[test]
-    fn opponent_get_move_when_zero_mistake_probability_should_pick_wining_position() {
+    fn opponent_get_move_when_unbeatable_difficulty_should_pick_wining_position() {
         // Create a game where the AI player has a wining move available.
-        // The flawless AI should pick this position.
+        // The unbeatable AI should pick this position.
         let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
-        let opponent = Opponent::new(0.0);
+        let opponent = Opponent::new(Difficulty::Unbeatable);
         let expected_position = game::Position { row: 1, column: 0 };
 
         let actual_position = opponent.get_move(&game).unwrap();
@@ -551,10 +664,10 @@ mod tests {
     }
 
     #[test]
-    fn opponent_evaluate_game_when_new_game_should_be_cats_game_for_all_positions() {
+    fn opponent_evaluate_game_when_new_game_and_unbeatable_difficulty_should_be_cats_game_for_all_positions(
+    ) {
         let game = game::Game::new();
-        let mistake_probability = 0.0;
-        let opponent = Opponent::new(mistake_probability);
+        let opponent = Opponent::new(Difficulty::Unbeatable);
         let expected_outcomes =
             initialize_free_position_outcomes(game.free_positions(), Outcome::CatsGame);
 
@@ -571,8 +684,7 @@ mod tests {
     #[test]
     fn opponent_evaluate_game_when_game_over_should_be_empty_map() {
         let game = create_game(&PLAYER_X_WIN);
-        let mistake_probability = 0.0;
-        let opponent = Opponent::new(mistake_probability);
+        let opponent = Opponent::new(Difficulty::Unbeatable);
         let expected_outcomes = HashMap::new();
 
         let actual_outcomes = opponent.evaluate_game(&game);
@@ -586,12 +698,11 @@ mod tests {
     }
 
     #[test]
-    fn opponent_evaluate_game_when_zero_mistake_probability_should_evaluate_all_positions() {
+    fn opponent_evaluate_game_when_unbeatable_difficulty_should_evaluate_all_positions() {
         // Create a game where the AI player has a wining move available.
-        // The flawless AI should determine the outcome of all remaining positions.
+        // The unbeatable AI should determine the outcome of all remaining positions.
         let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
-        let mistake_probability = 0.0;
-        let opponent = Opponent::new(mistake_probability);
+        let opponent = Opponent::new(Difficulty::Unbeatable);
         let mut expected_outcomes = HashMap::new();
         expected_outcomes.insert(game::Position { row: 1, column: 0 }, Outcome::Win);
         expected_outcomes.insert(game::Position { row: 1, column: 2 }, Outcome::Loss);
@@ -608,13 +719,12 @@ mod tests {
     }
 
     #[test]
-    fn opponent_evaluate_game_when_one_mistake_probability_should_see_unknown_outcome_for_all_positions(
-    ) {
+    fn opponent_evaluate_game_when_none_difficulty_should_see_unknown_outcome_for_all_positions() {
         // Create a game where the AI player has a wining move available.
-        // The AI that always makes mistakes should see the outcome as unknown for all positions.
+        // The opponent that uses the None difficulty does not actually evaluate
+        // any nodes and should see the outcome as unknown for all positions.
         let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
-        let mistake_probability = 1.0;
-        let opponent = Opponent::new(mistake_probability);
+        let opponent = Opponent::new(Difficulty::None);
         let mut expected_outcomes = HashMap::new();
         expected_outcomes.insert(game::Position { row: 1, column: 0 }, Outcome::Unknown);
         expected_outcomes.insert(game::Position { row: 1, column: 2 }, Outcome::Unknown);
@@ -628,6 +738,51 @@ mod tests {
             "\nGame board used for this test: \n{}",
             game.board()
         );
+    }
+
+    #[test]
+    fn opponent_evaluate_game_depth_should_start_at_zero() {
+        // We create a game that is already in progress to ensure we get past
+        // some of the caching the opponent does --- returning a cached result
+        // means our custom function would never be called!
+        let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
+
+        let opponent = Opponent::new(Difficulty::Custom(|depth| {
+            assert_eq!(depth, 0);
+            // Tell the game to not evaluate any further since we are only
+            // interested in the initial depth. Note: this test could also fail
+            // if returning `false` does not prevent the algorithm from going
+            // deeper into the tree.
+            false
+        }));
+
+        opponent.evaluate_game(&game);
+    }
+
+    #[test]
+    #[should_panic(expected = "The depth has been incremented.")]
+    fn opponent_evaluate_game_should_increment_depth() {
+        // The custom difficulty takes a function and not a closure so we use
+        // a bit of a hack to ensure the provided function is called as we expect:
+        // we panic when the condition is met with a specific message. Perhaps
+        // there is a better way to do this in the future?
+        // We create a game that is already in progress to ensure we get past
+        // some of the caching the opponent does --- returning a cached result
+        // means our custom function would never be called!
+        let game = create_game(&PLAYER_X_MOVE_WITH_WIN_AVAILABLE);
+
+        let opponent = Opponent::new(Difficulty::Custom(|depth| {
+            if depth > 0 {
+                panic!("The depth has been incremented.");
+            }
+            // Tell the opponent to keep evaluating nodes so it goes deeper into
+            // the tree, thus hopefully incrementing the depth. Note: this test
+            // could also fail if returning `true` does not result in deeper
+            // parts of the tree being evaluated.
+            true
+        }));
+
+        opponent.evaluate_game(&game);
     }
 
     #[test]
@@ -741,6 +896,20 @@ mod tests {
              that needs addressed in the code as the requirement of picking \
              random positions is not being fulfilled."
         );
+    }
+
+    #[test]
+    fn difficulty_when_custom_should_call_provided_function() {
+        // To ensure our custom function is called, we create a function that
+        // returns true only when a specific depth value is provided.
+        const TRUE_DEPTH_VALUE: i32 = 42_000;
+        let custom_difficulty = Difficulty::Custom(|depth| depth == TRUE_DEPTH_VALUE);
+
+        // Try calling our custom function twice, once with the specific value
+        // and once without it. The ensures one of the predefined difficulty
+        // functions is not being called.
+        assert!(custom_difficulty.should_evaluate_node(TRUE_DEPTH_VALUE));
+        assert!(!custom_difficulty.should_evaluate_node(0));
     }
 
     #[test]

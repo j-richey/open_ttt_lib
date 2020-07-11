@@ -32,11 +32,9 @@ fn main() {
     // changes the state of the game.
     let mut game = game::Game::new();
 
-    // Adjust the mistake probability to make the AI opponent or harder. As the
-    // mistake probability is increased the AI is more likely to be unable to
-    // determine the outcome of choosing a particular position.
-    let mistake_probability = 0.0;
-    let opponent = ai::Opponent::new(mistake_probability);
+    // Create an AI opponent to battle the player.
+    // Note: try selecting different difficulty levels such as Easy or Hard.
+    let opponent = ai::Opponent::new(ai::Difficulty::Medium);
 
     println!("{}", INSTRUCTIONS);
 
