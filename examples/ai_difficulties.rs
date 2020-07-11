@@ -2,6 +2,9 @@
 
 use rand::Rng;
 use std::fmt;
+use std::io;
+use std::io::prelude::*;
+use std::time;
 
 use open_ttt_lib::{ai, game};
 
@@ -15,7 +18,12 @@ percentage of wins, losses, and cat's games for each difficulty compared to the
 None difficulty which places marks randomly and the Unbeatable difficulty which
 never makes a mistake.
 
-This example also demonstrates how to create custom difficulties.
+This example also demonstrates how to create custom difficulties. Try modifying
+the `should_evaluate_node()` function and see how it compares to the builtin
+difficulties.
+
+Note: run this example runs significantly faster with the --release flag: e.g:
+$ cargo run --release --example ai_difficulties
 "#;
 
 // The number of games to play for each battle. More games gives a more accurate
@@ -77,11 +85,15 @@ fn battle(
     let player_x = ai::Opponent::new(player_x_difficulty);
     let player_o_name = get_difficulty_name(&player_o_difficulty);
     let player_o = ai::Opponent::new(player_o_difficulty);
-    let mut scores = BattleScores::default();
+
+    let mut scores = BattleScores::new();
+
+    let mut last_print_progress_time = time::Instant::now();
 
     while scores.total_games() < NUM_GAMES {
-        print_battle_progress(scores.total_games(), player_x_name, player_o_name);
-
+        // Play one turn of the either getting asking one of the AI players to
+        // pick a position or if the game is over updating the scores and starting
+        // the next game.
         match game.state() {
             game::State::PlayerXMove => {
                 let position = player_x.get_move(&game).unwrap();
@@ -104,6 +116,13 @@ fn battle(
                 game.start_next_game();
             }
         };
+
+        print_battle_progress(
+            scores.total_games(),
+            player_x_name,
+            player_o_name,
+            &mut last_print_progress_time,
+        );
     }
 
     scores
@@ -120,19 +139,36 @@ fn print_table_row(col_1: &str, col_2: &str, col_3: &str) {
     println!("{:10}  {:18}  {:18}", col_1, col_2, col_3);
 }
 
-// Prints the progress of a battle. Battles are fairly quick so progress is only
-// updated after a fixed number of battles.
-fn print_battle_progress(games_played: i32, player_x_name: &str, player_o_name: &str) {
-    const UPDATE_INTERVAL: i32 = 20;
-    let needs_update = games_played % UPDATE_INTERVAL == 0;
-    if needs_update {
+// Occasionally prints the progress of a battle.
+fn print_battle_progress(
+    games_played: i32,
+    player_x_name: &str,
+    player_o_name: &str,
+    last_update_time: &mut time::Instant,
+) {
+    // The time between updates is set so users can see the program is making
+    // progress but so it does not go so fast that the display is just a blur.
+    const UPDATE_INTERVAL: time::Duration = time::Duration::from_millis(100);
+
+    if last_update_time.elapsed() >= UPDATE_INTERVAL {
+        // Create a description of the progress using the player names abd
+        // number of games played.
         let battle_progress = games_played as f64 / NUM_GAMES as f64;
-        print!(
-            "{:3.0}% {} vs {:20}\r",
-            battle_progress * 100.0,
+        let progress_text = format!(
+            "{} vs. {}  game {} of {}, ({:.0}%)",
             player_x_name,
-            player_o_name
+            player_o_name,
+            games_played,
+            NUM_GAMES,
+            battle_progress * 100.0
         );
+        // Print the progress text. The text is padded with spaces and ended with
+        // a carriage return so old progress text is overwritten with new text.
+        // Also, the standard output is flushed so the user sees the text we
+        // printed instead of it getting stuck in the buffer.
+        print!("{:50}\r", progress_text);
+        let _ignored_result = io::stdout().flush();
+        *last_update_time = time::Instant::now();
     }
 }
 
@@ -157,6 +193,14 @@ struct BattleScores {
 }
 
 impl BattleScores {
+    fn new() -> Self {
+        BattleScores {
+            player_x_wins: 0,
+            player_o_wins: 0,
+            cats_games: 0,
+        }
+    }
+
     fn total_games(&self) -> i32 {
         self.player_x_wins + self.player_o_wins + self.cats_games
     }
@@ -179,16 +223,6 @@ impl BattleScores {
             fraction * 100.0
         } else {
             0.0
-        }
-    }
-}
-
-impl Default for BattleScores {
-    fn default() -> Self {
-        BattleScores {
-            player_x_wins: 0,
-            player_o_wins: 0,
-            cats_games: 0,
         }
     }
 }
