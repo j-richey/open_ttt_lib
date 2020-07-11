@@ -351,8 +351,12 @@ impl Difficulty {
 
     // Medium high chance of going for the win or blocking a loss. However, as
     // the tree gets deeper it is more likely not evaluate that part of the tree.
-    fn medium_should_evaluate_node(_depth: i32) -> bool {
-        rand::thread_rng().gen_bool(0.8)
+    fn medium_should_evaluate_node(depth: i32) -> bool {
+        if depth == 0 {
+            rand::thread_rng().gen_bool(0.9)
+        } else {
+            rand::thread_rng().gen_bool(0.75)
+        }
     }
 
     // Hard looks several moves ahead. Past that there is a small chance if it
@@ -361,7 +365,7 @@ impl Difficulty {
         if depth <= 1 {
             true
         } else {
-            rand::thread_rng().gen_bool(0.95)
+            rand::thread_rng().gen_bool(0.97)
         }
     }
 
