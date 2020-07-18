@@ -7,6 +7,21 @@ as described for Rust libraries in
 [RFC 1105](https://github.com/rust-lang/rfcs/blob/master/text/1105-api-evolution.md).
 
 
+## [0.2.0] - 2020-07-18
+
+### Added
+* `ai::Difficulty` enumeration containing predefined AI difficulty levels
+  including **Easy**, **Medium**, and **Hard** . The **Custom** variant allows
+  full control over the AI opponent's difficulty.
+* `ai_difficulties` example shows how the different AI difficulties compare and
+  demonstrates how to create custom difficulties.
+
+### Changed
+* The `ai::Opponent::new` constructor takes a `ai::Difficulty` variant instead
+  of a `mistake_probability` number.
+* Improved worst case AI move time by 150x.
+
+
 ## [0.1.2] - 2020-04-18
 
 ### Added
