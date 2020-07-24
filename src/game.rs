@@ -526,19 +526,19 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Error::GameOver => write!(
+            Self::GameOver => write!(
                 f,
                 "The game is over so no more moves can \
                  be performed. Use start_next_game() to start the next game."
             ),
-            Error::PositionAlreadyOwned(position, owner) => write!(
+            Self::PositionAlreadyOwned(position, owner) => write!(
                 f,
                 "The square at {:?} is already owned by {:?}. Once a square is \
                  owned by a player it cannot be used by a different player. Use \
                  free_positions() to get available positions that can be used.",
                 position, owner
             ),
-            Error::InvalidPosition(position) => write!(
+            Self::InvalidPosition(position) => write!(
                 f,
                 "The position {:?} is outside the area of the board. Please use \
                  a valid position contained by the board.",
@@ -591,11 +591,11 @@ impl State {
     /// ```
     pub fn is_game_over(&self) -> bool {
         match self {
-            State::PlayerXMove => false,
-            State::PlayerOMove => false,
-            State::PlayerXWin(_) => true,
-            State::PlayerOWin(_) => true,
-            State::CatsGame => true,
+            Self::PlayerXMove => false,
+            Self::PlayerOMove => false,
+            Self::PlayerXWin(_) => true,
+            Self::PlayerOWin(_) => true,
+            Self::CatsGame => true,
         }
     }
 }

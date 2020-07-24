@@ -324,12 +324,12 @@ impl Difficulty {
     // indicates if the `Opponent` should evaluate the current node.
     fn should_evaluate_node(&self, depth: i32) -> bool {
         match self {
-            Difficulty::None => Difficulty::none_should_evaluate_node(),
-            Difficulty::Easy => Difficulty::easy_should_evaluate_node(depth),
-            Difficulty::Medium => Difficulty::medium_should_evaluate_node(depth),
-            Difficulty::Hard => Difficulty::hard_should_evaluate_node(depth),
-            Difficulty::Unbeatable => Difficulty::unbeatable_should_evaluate_node(),
-            Difficulty::Custom(custom_should_evaluate_node) => custom_should_evaluate_node(depth),
+            Self::None => Difficulty::none_should_evaluate_node(),
+            Self::Easy => Difficulty::easy_should_evaluate_node(depth),
+            Self::Medium => Difficulty::medium_should_evaluate_node(depth),
+            Self::Hard => Difficulty::hard_should_evaluate_node(depth),
+            Self::Unbeatable => Difficulty::unbeatable_should_evaluate_node(),
+            Self::Custom(custom_should_evaluate_node) => custom_should_evaluate_node(depth),
         }
     }
 
