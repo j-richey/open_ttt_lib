@@ -7,7 +7,7 @@ as described for Rust libraries in
 [RFC 1105](https://github.com/rust-lang/rfcs/blob/master/text/1105-api-evolution.md).
 
 
-## Unreleased
+## [0.2.1] - 2021-02-15
 
 ### Added
 * Documented the library does not use unsafe code. This is enforced with the
