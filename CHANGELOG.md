@@ -7,6 +7,16 @@ as described for Rust libraries in
 [RFC 1105](https://github.com/rust-lang/rfcs/blob/master/text/1105-api-evolution.md).
 
 
+## Unreleased
+
+### Added
+* Documented the library does not use unsafe code. This is enforced with the
+  `#![forbid(unsafe_code)]` attribute. 
+
+### Fixed
+* Several documentation typos.
+
+
 ## [0.2.0] - 2020-07-18
 
 ### Added
@@ -19,7 +29,7 @@ as described for Rust libraries in
 ### Changed
 * The `ai::Opponent::new` constructor takes a `ai::Difficulty` variant instead
   of a `mistake_probability` number.
-* Improved worst case AI move time by 150x.
+* Improved the worst case AI move time by 150x.
 
 
 ## [0.1.2] - 2020-04-18
