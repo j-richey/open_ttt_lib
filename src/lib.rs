@@ -51,6 +51,7 @@
 //! ```
 
 #![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.2.0")]
+#![forbid(unsafe_code)]
 
 pub mod ai;
 pub mod board;

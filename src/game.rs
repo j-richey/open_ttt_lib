@@ -450,7 +450,7 @@ impl Game {
             board::Owner::PlayerX => State::PlayerXWin(winning_positions),
             board::Owner::PlayerO => State::PlayerOWin(winning_positions),
             board::Owner::None => panic!(
-                "The game thinks there should be a winner\
+                "The game thinks there should be a winner \
                  but it cannot determine who won the game. This condition is \
                  the result of a bug in the open_ttt_lib used by this application."
             ),
@@ -481,7 +481,7 @@ impl Default for Game {
     }
 }
 
-/// An iterator over free positions in a `Game`; that is positions do not have an owner.
+/// An iterator over free positions in a `Game`; that is positions without an owner.
 pub struct FreePositions<'a> {
     board_iter: board::Iter<'a>,
     is_game_over: bool,

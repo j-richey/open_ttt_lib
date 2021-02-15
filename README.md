@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/crates/l/open_ttt_lib.svg)](https://github.com/j-richey/open_ttt_lib/blob/master/LICENSE.txt)
 [![Build Status](https://travis-ci.com/j-richey/open_ttt_lib.svg?branch=master)](https://travis-ci.com/j-richey/open_ttt_lib)
 [![Coverage Status](https://coveralls.io/repos/github/j-richey/open_ttt_lib/badge.svg?branch=master)](https://coveralls.io/github/j-richey/open_ttt_lib?branch=master)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
 Open source Rust library containing common Tic Tac Toe functionality.
 

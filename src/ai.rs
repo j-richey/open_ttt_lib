@@ -84,7 +84,7 @@ impl Opponent {
     ///
     /// This functionality is useful if you wish to examine how the AI opponent
     /// viewed the game. E.g. this can be helpful for creating a hint system to
-    /// help human players pick a position or when fine tuning the AI difficulty
+    /// help human players pick a position or when fine-tuning the AI difficulty
     /// settings.
     ///
     /// # Examples
@@ -285,9 +285,9 @@ pub enum Difficulty {
     /// # Notes
     /// * The number of nodes to evaluate for a game can be large resulting in
     ///   the provided function being invoked many times when evaluating a game.
-    /// * The AI algorithms contain speed optimizations such that evaluating
-    ///   part or all of the outcome tree might be skipped thus skipping calling
-    ///   the provided function.
+    /// * The AI algorithms contain speed optimizations that might skip
+    ///   evaluating part or all of the outcome tree. In these cases the
+    ///   provided function is not called.
     ///
     /// # Examples
     /// Implement custom difficulties with the same behavior as the `None` and
