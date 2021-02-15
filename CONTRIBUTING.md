@@ -82,15 +82,15 @@ cargo clippy && cargo clippy --examples
 ```
 
 This will point out any problematic spots in the code. Please fix the indicated items.
-Rarely, there might be false positive. In that case please allow an exception for the
-specific rule at the specific location of the violation along with a comment describing
-why it was necessary to suppress the rule.
+In rare situations, there might be false positive. In that case please allow an exception 
+to the specific rule at the specific location of the violation along with a comment 
+describing why it was necessary to suppress the rule.
 
 
 ## Code Formatting
 The [rustfmt](https://github.com/rust-lang/rustfmt) to is used to automatically provide
 consistent formatting to the code base. This allows you to focus on the high level logic
-and not worry about formatting details. To instal `rustfmt` run:
+and not worry about formatting details. To install `rustfmt` run:
 
 ```
 rustup component add rustfmt
@@ -140,7 +140,7 @@ Maintainers, please follow this checklist to create a release and publish it to
    documentation, and examples are updated and correct.
 2. Ensure the `CHANGELOG.md` describes all notable changes from the last release.
 3. Update the version number:
-   * `version` value in In `Cargo.toml`
+   * `version` value in `Cargo.toml`
    * **Usage** section in `README.md`
    * Set the version number and release date in `CHANGELOG.md`
    * Edit the `html_root_url` attribute in `lib.rs`
@@ -153,5 +153,5 @@ Maintainers, please follow this checklist to create a release and publish it to
    ```
 5. Commit the changes and tag the commit with the version number.
 6. Preform a dry run of publishing the crate with `cargo publish --dry-run`.
-7. Publish the create with `cargo publish`.
+7. Publish the crate with `cargo publish`.
 8. Push the git commit to GitHub and tags with `git push` and `git push --tags`.

@@ -116,7 +116,7 @@ impl Board {
         }
     }
 
-    /// Gets a mutable reference ot the owner at the indicated position.
+    /// Gets a mutable reference to the owner at the indicated position.
     ///
     /// This allows the owner of the position to be changed. `None` is returned
     /// if the board does not contain the provided position.
