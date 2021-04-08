@@ -136,8 +136,8 @@ before sending a pull request:
 Maintainers, please follow this checklist to create a release and publish it to
 [crates.io](https://crates.io/).
 
-1. Ensure all changes are merged to master. Verify the README, library
-   documentation, and examples are updated and correct.
+1. Ensure all changes are merged to the `main` branch. Verify the README,
+   library documentation, and examples are updated and correct.
 2. Ensure the `CHANGELOG.md` describes all notable changes from the last release.
 3. Update the version number:
    * `version` value in `Cargo.toml`

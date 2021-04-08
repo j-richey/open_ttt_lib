@@ -2,9 +2,9 @@
 
 [![Crates.io](https://img.shields.io/crates/v/open_ttt_lib.svg)](https://crates.io/crates/open_ttt_lib)
 [![Documentation](https://docs.rs/open_ttt_lib/badge.svg)](https://docs.rs/open_ttt_lib)
-[![License](https://img.shields.io/crates/l/open_ttt_lib.svg)](https://github.com/j-richey/open_ttt_lib/blob/master/LICENSE.txt)
-[![Build Status](https://travis-ci.com/j-richey/open_ttt_lib.svg?branch=master)](https://travis-ci.com/j-richey/open_ttt_lib)
-[![Coverage Status](https://coveralls.io/repos/github/j-richey/open_ttt_lib/badge.svg?branch=master)](https://coveralls.io/github/j-richey/open_ttt_lib?branch=master)
+[![License](https://img.shields.io/crates/l/open_ttt_lib.svg)](https://github.com/j-richey/open_ttt_lib/blob/main/LICENSE.txt)
+[![Build Status](https://travis-ci.com/j-richey/open_ttt_lib.svg?branch=main)](https://travis-ci.com/j-richey/open_ttt_lib)
+[![Coverage Status](https://coveralls.io/repos/github/j-richey/open_ttt_lib/badge.svg?branch=main)](https://coveralls.io/github/j-richey/open_ttt_lib?branch=main)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
 Open source Rust library containing common Tic Tac Toe functionality.
@@ -87,9 +87,9 @@ Please report issues and feel free to request new features using this project's
 
 
 ## Contributing
-Contributions are welcome! See [CONTRIBUTING.md](https://github.com/j-richey/open_ttt_lib/blob/master/CONTRIBUTING.md)
+Contributions are welcome! See [CONTRIBUTING.md](https://github.com/j-richey/open_ttt_lib/blob/main/CONTRIBUTING.md)
 for details on how to contribute to this project.
 
 
 ## License
-The library is licensed under the [MIT license](https://github.com/j-richey/open_ttt_lib/blob/master/LICENSE.txt).
+The library is licensed under the [MIT license](https://github.com/j-richey/open_ttt_lib/blob/main/LICENSE.txt).
