@@ -598,11 +598,8 @@ impl State {
     /// ```
     pub fn is_game_over(&self) -> bool {
         match self {
-            Self::PlayerXMove => false,
-            Self::PlayerOMove => false,
-            Self::PlayerXWin(_) => true,
-            Self::PlayerOWin(_) => true,
-            Self::CatsGame => true,
+            Self::PlayerXMove | Self::PlayerOMove => false,
+            Self::PlayerXWin(_) | Self::PlayerOWin(_) | Self::CatsGame => true,
         }
     }
 }
