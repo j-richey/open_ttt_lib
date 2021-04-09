@@ -488,7 +488,7 @@ pub fn best_position<S: BuildHasher>(
         Outcome::Unknown,
         Outcome::Loss,
     ];
-    for outcome in best_to_worst_outcomes.iter() {
+    for outcome in &best_to_worst_outcomes {
         if outcome_to_position_map.contains_key(outcome) {
             let random_position = **outcome_to_position_map
                 .get(outcome)
@@ -544,7 +544,7 @@ fn is_worst_outcome(outcome: Outcome, is_my_turn: bool) -> bool {
 // outcomes.
 fn worst_outcome(outcomes: &HashSet<Outcome>, is_my_turn: bool) -> Outcome {
     // Search through the outcomes, from worst to best, returning the first one found.
-    for outcome in worst_to_best_outcomes(is_my_turn).iter() {
+    for outcome in &worst_to_best_outcomes(is_my_turn) {
         if outcomes.contains(outcome) {
             return *outcome;
         }
