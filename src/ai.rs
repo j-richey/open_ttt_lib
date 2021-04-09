@@ -114,7 +114,7 @@ impl Opponent {
             // Determine which player the AI is playing as. Note: we can only
             // determine the AI player if the game is not over, thus we rely on
             // the get_cached_result() call above to handle game over conditions.
-            let ai_player = AIPlayer::from_game_state(game.state());
+            let ai_player = AiPlayer::from_game_state(game.state());
 
             // For each free square, evaluate the consequences of using that
             // square. The outcome for each position and the position is recorded.
@@ -149,7 +149,7 @@ impl Opponent {
         &self,
         game: &game::Game,
         position: game::Position,
-        ai_player: AIPlayer,
+        ai_player: AiPlayer,
         depth: i32,
     ) -> Outcome {
         // Since this is a recursive function, ensure we have not made a mistake
@@ -179,7 +179,7 @@ impl Opponent {
 
         // Check to see if this position is being considered for this AI instance
         // or the if we are simulating the move for the other player.
-        let is_my_turn = ai_player == AIPlayer::from_game_state(game.state());
+        let is_my_turn = ai_player == AiPlayer::from_game_state(game.state());
 
         // Clone the game so we can try out the move without modifying the original game.
         let mut game = game.clone();
@@ -396,16 +396,16 @@ impl Outcome {
     // provided game state.
     //
     // Panics if the game is not over.
-    fn from_game_state(state: game::State, ai_player: AIPlayer) -> Self {
+    fn from_game_state(state: game::State, ai_player: AiPlayer) -> Self {
         match state {
             game::State::CatsGame => Outcome::CatsGame,
             game::State::PlayerXWin(_) => match ai_player {
-                AIPlayer::PlayerX => Outcome::Win,
-                AIPlayer::PlayerO => Outcome::Loss,
+                AiPlayer::PlayerX => Outcome::Win,
+                AiPlayer::PlayerO => Outcome::Loss,
             },
             game::State::PlayerOWin(_) => match ai_player {
-                AIPlayer::PlayerX => Outcome::Loss,
-                AIPlayer::PlayerO => Outcome::Win,
+                AiPlayer::PlayerX => Outcome::Loss,
+                AiPlayer::PlayerO => Outcome::Win,
             },
             _ => panic!(
                 "Cannot determine the AI outcome since the game is not over. \
@@ -417,12 +417,12 @@ impl Outcome {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum AIPlayer {
+enum AiPlayer {
     PlayerX,
     PlayerO,
 }
 
-impl AIPlayer {
+impl AiPlayer {
     // Determines which player the AI is playing as, X or O, based on the current
     // state of the game.
     //
@@ -915,9 +915,9 @@ mod tests {
     #[test]
     fn ai_player_from_game_state_when_player_X_move_should_be_player_X() {
         let game_state = game::State::PlayerXMove;
-        let expected_ai_player = AIPlayer::PlayerX;
+        let expected_ai_player = AiPlayer::PlayerX;
 
-        let actual_ai_player = AIPlayer::from_game_state(game_state);
+        let actual_ai_player = AiPlayer::from_game_state(game_state);
 
         assert_eq!(expected_ai_player, actual_ai_player);
     }
@@ -925,9 +925,9 @@ mod tests {
     #[test]
     fn ai_player_from_game_state_when_player_O_move_should_be_player_O() {
         let game_state = game::State::PlayerOMove;
-        let expected_ai_player = AIPlayer::PlayerO;
+        let expected_ai_player = AiPlayer::PlayerO;
 
-        let actual_ai_player = AIPlayer::from_game_state(game_state);
+        let actual_ai_player = AiPlayer::from_game_state(game_state);
 
         assert_eq!(expected_ai_player, actual_ai_player);
     }
@@ -938,13 +938,13 @@ mod tests {
         // Set the game state to a game over state.
         let game_state = game::State::CatsGame;
 
-        let _actual_ai_player = AIPlayer::from_game_state(game_state);
+        let _actual_ai_player = AiPlayer::from_game_state(game_state);
     }
 
     #[test]
     fn outcome_from_game_state_when_cats_game_should_be_cats_game() {
         let game_state = game::State::CatsGame;
-        let ai_player = AIPlayer::PlayerX;
+        let ai_player = AiPlayer::PlayerX;
         let expected_outcome = Outcome::CatsGame;
 
         let actual_outcome = Outcome::from_game_state(game_state, ai_player);
@@ -955,7 +955,7 @@ mod tests {
     #[test]
     fn outcome_from_game_state_when_player_X_win_and_player_X_should_be_win() {
         let game_state = game::State::PlayerXWin(Default::default());
-        let ai_player = AIPlayer::PlayerX;
+        let ai_player = AiPlayer::PlayerX;
         let expected_outcome = Outcome::Win;
 
         let actual_outcome = Outcome::from_game_state(game_state, ai_player);
@@ -966,7 +966,7 @@ mod tests {
     #[test]
     fn outcome_from_game_state_when_player_X_win_and_player_O_should_be_loss() {
         let game_state = game::State::PlayerXWin(Default::default());
-        let ai_player = AIPlayer::PlayerO;
+        let ai_player = AiPlayer::PlayerO;
         let expected_outcome = Outcome::Loss;
 
         let actual_outcome = Outcome::from_game_state(game_state, ai_player);
@@ -977,7 +977,7 @@ mod tests {
     #[test]
     fn outcome_from_game_state_when_player_O_win_and_player_O_should_be_win() {
         let game_state = game::State::PlayerOWin(Default::default());
-        let ai_player = AIPlayer::PlayerO;
+        let ai_player = AiPlayer::PlayerO;
         let expected_outcome = Outcome::Win;
 
         let actual_outcome = Outcome::from_game_state(game_state, ai_player);
@@ -988,7 +988,7 @@ mod tests {
     #[test]
     fn outcome_from_game_state_when_player_O_win_and_player_X_should_be_loss() {
         let game_state = game::State::PlayerOWin(Default::default());
-        let ai_player = AIPlayer::PlayerX;
+        let ai_player = AiPlayer::PlayerX;
         let expected_outcome = Outcome::Loss;
 
         let actual_outcome = Outcome::from_game_state(game_state, ai_player);
