@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 as described for Rust libraries in
 [RFC 1105](https://github.com/rust-lang/rfcs/blob/master/text/1105-api-evolution.md).
 
+## Unreleased
+
+### Changed
+* Improved `game::Game::do_move()` speed by up to 70%.
+* Improved the worst case AI move time by up to 60%.
+
 
 ## [0.2.1] - 2021-02-15
 

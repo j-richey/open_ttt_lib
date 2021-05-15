@@ -386,8 +386,8 @@ impl Game {
     // `next_position_fn` provides the next position to look at based on the
     // current position.
     //
-    // If all of the positions have the same owner then a vector of all the
-    // positions is returned. Otherwise, None is returned.
+    // If all of the positions have the same owner then they are inserted into
+    // the set of winning positions.
     fn check_sequence(
         &self,
         winning_positions: &mut HashSet<board::Position>,
