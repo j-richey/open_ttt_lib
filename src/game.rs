@@ -329,7 +329,17 @@ impl Game {
     //
     // An empty set is returned if there are no winning positions.
     fn find_winning_positions(&self) -> HashSet<board::Position> {
-        let mut all_winning_positions = Vec::new();
+        // This method is part of the hot path: pre-allocate storage for the maximum number of
+        // winning positions possible for the game board.
+        const MAX_WINNING_POSITIONS: usize = 5;
+        debug_assert_eq!(
+            self.board.size(),
+            board::Size {
+                rows: 3,
+                columns: 3
+            }
+        );
+        let mut winning_positions = HashSet::with_capacity(MAX_WINNING_POSITIONS);
 
         // Check for winning a row.
         for row in 0..self.board.size().rows {
@@ -338,11 +348,7 @@ impl Game {
                 row: x.row,
                 column: x.column + 1,
             };
-            if let Some(winning_positions) =
-                self.check_sequence(starting_position, next_position_fn)
-            {
-                all_winning_positions.extend(winning_positions);
-            }
+            self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
         }
 
         // Check for winning a column.
@@ -352,11 +358,7 @@ impl Game {
                 row: x.row + 1,
                 column: x.column,
             };
-            if let Some(winning_positions) =
-                self.check_sequence(starting_position, next_position_fn)
-            {
-                all_winning_positions.extend(winning_positions);
-            }
+            self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
         }
 
         // Check for winning top left to bottom right.
@@ -365,9 +367,7 @@ impl Game {
             row: x.row + 1,
             column: x.column + 1,
         };
-        if let Some(winning_positions) = self.check_sequence(starting_position, next_position_fn) {
-            all_winning_positions.extend(winning_positions);
-        }
+        self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
 
         // Check for top right to bottom left.
         let starting_position = board::Position { row: 0, column: 2 };
@@ -375,11 +375,9 @@ impl Game {
             row: x.row + 1,
             column: x.column - 1,
         };
-        if let Some(winning_positions) = self.check_sequence(starting_position, next_position_fn) {
-            all_winning_positions.extend(winning_positions);
-        }
+        self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
 
-        all_winning_positions.into_iter().collect()
+        winning_positions
     }
 
     // Helper function for checking a sequence of positions.
@@ -388,13 +386,14 @@ impl Game {
     // `next_position_fn` provides the next position to look at based on the
     // current position.
     //
-    // If all of the positions have the same owner then a vector of all the
-    // positions is returned. Otherwise, None is returned.
+    // If all of the positions have the same owner then they are inserted into
+    // the set of winning positions.
     fn check_sequence(
         &self,
+        winning_positions: &mut HashSet<board::Position>,
         starting_position: board::Position,
         next_position_fn: fn(board::Position) -> board::Position,
-    ) -> Option<Vec<board::Position>> {
+    ) {
         // Get the owner of the starting position. If the position is outside the
         // board or there is no owner then there is no point in continuing the search.
         let initial_owner = self
@@ -402,24 +401,32 @@ impl Game {
             .get(starting_position)
             .unwrap_or(board::Owner::None);
         if initial_owner == board::Owner::None {
-            return None;
+            return;
         }
 
-        // Loop over the remaining positions to see if they have the same owner
-        // as the initial position. The positions visited thus far are added to
-        // a vector that can be returned if all the owners match.
-        let mut winning_positions = vec![starting_position];
+        // Loop over the remaining positions to see if they have the same owner as the
+        // initial position. The positions visited thus far are added to a collection.
+        // This method is part of the hot path so a fixed sized, stack based array is
+        // used to reduce memory allocations.
+        const POSITIONS_SIZE: usize = 3;
+        let mut positions: [board::Position; POSITIONS_SIZE] = [starting_position; POSITIONS_SIZE];
+        let mut positions_index = 0;
+
         let mut position = next_position_fn(starting_position);
         while let Some(owner) = self.board.get(position) {
             if owner != initial_owner {
-                return None;
+                return;
             }
-
-            winning_positions.push(position);
+            positions_index += 1;
+            positions[positions_index] = position;
             position = next_position_fn(position);
         }
 
-        Some(winning_positions)
+        // All positions have the same owner, thus we have found a win. Add the positions to set
+        // of winning positions.
+        for p in &positions {
+            winning_positions.insert(*p);
+        }
     }
 
     // Gets the state representing winning player based on the set of winning positions.

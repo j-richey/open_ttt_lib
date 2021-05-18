@@ -9,7 +9,8 @@ use std::fmt;
 /// Represents the Tic Tac Toe board providing multiple ways to access individual squares.
 #[derive(Clone)]
 pub struct Board {
-    squares: Vec<Vec<Owner>>,
+    squares: Vec<Owner>,
+    size: Size,
 }
 
 impl Board {
@@ -39,34 +40,20 @@ impl Board {
         // Validate the provided board size.
         if size.rows < MIN_BOARD_SIZE.rows || size.columns < MIN_BOARD_SIZE.columns {
             panic!(
-                "Invalid board size of '{:?}' provided. The minium board size is '{:?}'",
+                "Invalid board size of '{:?}' provided. The minimum board size is '{:?}'",
                 size, MIN_BOARD_SIZE
             );
         }
 
-        let mut squares: Vec<Vec<Owner>> = Vec::new();
-        for _ in 0..size.rows {
-            let mut row: Vec<Owner> = Vec::new();
-            for _ in 0..size.columns {
-                row.push(Owner::default());
-            }
-            squares.push(row);
-        }
+        let total_squares = (size.rows * size.columns) as usize;
+        let squares = vec![Owner::default(); total_squares];
 
-        Board { squares }
+        Board { squares, size }
     }
 
     /// Gets the size of the board.
     pub fn size(&self) -> Size {
-        let rows = self.squares.len() as i32;
-
-        // The length of the first row happens to be the number of columns.
-        let columns = match self.squares.get(0) {
-            Some(row) => row.len() as i32,
-            None => 0,
-        };
-
-        Size { rows, columns }
+        self.size
     }
 
     /// Returns `true` if the board contains the given position.
@@ -108,8 +95,8 @@ impl Board {
     /// assert!(b.get(board::Position { row: -1, column: -1 }).is_none());
     /// ```
     pub fn get(&self, position: Position) -> Option<Owner> {
-        if self.contains(position) {
-            let owner = self.squares[position.row as usize][position.column as usize];
+        if let Some(index) = self.get_squares_index(position) {
+            let owner = self.squares[index];
             Some(owner)
         } else {
             None
@@ -136,8 +123,8 @@ impl Board {
     /// assert_eq!(b.get(position), Some(board::Owner::PlayerX));
     /// ```
     pub fn get_mut(&mut self, position: Position) -> Option<&mut Owner> {
-        if self.contains(position) {
-            self.squares[position.row as usize].get_mut(position.column as usize)
+        if let Some(index) = self.get_squares_index(position) {
+            self.squares.get_mut(index)
         } else {
             None
         }
@@ -164,6 +151,18 @@ impl Board {
             board: &self,
             position: Position { row: 0, column: 0 },
         }
+    }
+
+    // Helper function that calculates the index into the squares vector based on the given position.
+    // None is returned if the board does not contain the given position.
+    fn get_squares_index(&self, position: Position) -> Option<usize> {
+        if !self.contains(position) {
+            return None;
+        }
+        let index = (position.row * self.size.columns + position.column) as usize;
+        assert!(index < self.squares.len());
+
+        Some(index)
     }
 
     // Helper function for displaying boards that writes the separators between rows.
@@ -194,9 +193,11 @@ impl fmt::Display for Board {
     /// This is suitable for use in simple console applications or debugging
     /// purposes.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for row in &self.squares {
+        for row in 0..self.size().rows {
             self.write_row_separator(f)?;
-            self.write_row_content(f, row)?;
+            let start = (row * self.size().columns) as usize;
+            let end = start + self.size().columns as usize;
+            self.write_row_content(f, &self.squares[start..end])?
         }
 
         // Write the final separator to finish off the board.
@@ -514,16 +515,35 @@ mod tests {
 
     #[test]
     fn board_get_when_not_contains_position_should_be_none() {
-        let board = Board::new(Size {
-            rows: 1,
-            columns: 1,
-        });
-        let position_not_in_board = Position { row: 1, column: 0 };
-        let expected = None;
+        // Simulate a parameterized test by wrapping in a for loop. Positions are picked to exercise
+        // various edge cases such as wrapping to the next row.
+        let positions_not_in_board = vec![
+            Position {
+                row: -1,
+                column: -1,
+            },
+            Position { row: 0, column: -1 },
+            Position { row: -1, column: 0 },
+            Position { row: 0, column: 4 },
+            Position { row: 1, column: 4 },
+            Position { row: 2, column: 0 },
+        ];
+        for position in positions_not_in_board {
+            let board = Board::new(Size {
+                rows: 2,
+                columns: 4,
+            });
+            let expected = None;
 
-        let actual = board.get(position_not_in_board);
-
-        assert_eq!(expected, actual);
+            let actual = board.get(position);
+            assert_eq!(
+                expected,
+                actual,
+                "Position {:?} found in board of size {:?}",
+                position,
+                board.size()
+            );
+        }
     }
 
     #[test]
