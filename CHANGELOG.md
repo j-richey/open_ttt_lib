@@ -8,6 +8,9 @@ as described for Rust libraries in
 
 ## Unreleased
 
+### Fixed
+* Several documentation typos.
+
 ### Changed
 * Improved `game::Game::do_move()` speed by up to 70%.
 * Improved the worst case AI move time by up to 60%.

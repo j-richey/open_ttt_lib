@@ -200,7 +200,7 @@ impl Game {
     /// // For a new game all of the positions are available.
     /// assert!(game.can_move(p));
     ///
-    /// // However, Once a position is owned, its owner cannot be changed.
+    /// // Once a position is owned, its owner cannot be changed.
     /// game.do_move(p)?;
     /// assert!(!game.can_move(p));
     /// #

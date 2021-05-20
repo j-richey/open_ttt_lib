@@ -262,7 +262,7 @@ pub enum Difficulty {
     /// the recommended difficulty for experienced tic-tac-toe players.
     Hard,
 
-    /// The `Opponent` plays perfect games and cannot loose. The best outcome
+    /// The `Opponent` plays perfect games and cannot be defeated. The best outcome
     /// for the player is a cat's game.
     Unbeatable,
 
@@ -278,7 +278,7 @@ pub enum Difficulty {
     ///
     /// The depth of the node being considered is provided as the function's
     /// parameter so the custom difficulty can take into account how many moves
-    /// ahead the `Opponent` is looking ahead. E.g. the `Opponent` could be more
+    /// ahead the `Opponent` is looking. E.g. the `Opponent` could be more
     /// likely to make mistakes the farther ahead it looks. The depth starts at
     /// zero.
     ///
