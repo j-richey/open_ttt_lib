@@ -95,7 +95,7 @@ Please report issues and feel free to request new features using this project's
 
 
 ## Changes
-All notable changes are documented in the [CHANGELOG.md](https://github.com/j-richey/open_ttt_lib/blob/main/CHANGELOG.md)
+All notable changes are documented in the [CHANGELOG.md](https://github.com/j-richey/open_ttt_lib/blob/main/CHANGELOG.md).
 
 
 ## Contributing
