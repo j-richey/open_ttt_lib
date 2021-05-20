@@ -220,7 +220,7 @@ impl Game {
 
     /// Marks the indicated square as being owned by the current player.
     ///
-    /// The state of the game is updated as a side effect of do_move(). The new
+    /// The state of the game is updated as a side effect of `do_move()`. The new
     /// state is returned if the move was successful.
     ///
     /// # Errors
@@ -341,7 +341,18 @@ impl Game {
         );
         let mut winning_positions = HashSet::with_capacity(MAX_WINNING_POSITIONS);
 
-        // Check for winning a row.
+        // Check for winning a rows, columns, or diagonals. Each function writes winning positions to
+        // the provided set.
+        self.check_rows(&mut winning_positions);
+        self.check_columns(&mut winning_positions);
+        self.check_top_left_to_bottom_right(&mut winning_positions);
+        self.check_top_right_to_bottom_left(&mut winning_positions);
+
+        winning_positions
+    }
+
+    // Helper function for checking for a winning row.
+    fn check_rows(&self, mut winning_positions: &mut HashSet<Position>) {
         for row in 0..self.board.size().rows {
             let starting_position = board::Position { row, column: 0 };
             let next_position_fn = |x: board::Position| board::Position {
@@ -350,8 +361,10 @@ impl Game {
             };
             self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
         }
+    }
 
-        // Check for winning a column.
+    // Helper function for checking for a winning column.
+    fn check_columns(&self, mut winning_positions: &mut HashSet<Position>) {
         for column in 0..self.board.size().columns {
             let starting_position = board::Position { row: 0, column };
             let next_position_fn = |x: board::Position| board::Position {
@@ -360,24 +373,26 @@ impl Game {
             };
             self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
         }
+    }
 
-        // Check for winning top left to bottom right.
+    // Helper function for checking the top left to bottom right diagonal.
+    fn check_top_left_to_bottom_right(&self, mut winning_positions: &mut HashSet<Position>) {
         let starting_position = board::Position { row: 0, column: 0 };
         let next_position_fn = |x: board::Position| board::Position {
             row: x.row + 1,
             column: x.column + 1,
         };
         self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
+    }
 
-        // Check for top right to bottom left.
+    // Helper function for checking the top right to bottom left diagonal.
+    fn check_top_right_to_bottom_left(&self, mut winning_positions: &mut HashSet<Position>) {
         let starting_position = board::Position { row: 0, column: 2 };
         let next_position_fn = |x: board::Position| board::Position {
             row: x.row + 1,
             column: x.column - 1,
         };
         self.check_sequence(&mut winning_positions, starting_position, next_position_fn);
-
-        winning_positions
     }
 
     // Helper function for checking a sequence of positions.
@@ -598,11 +613,8 @@ impl State {
     /// ```
     pub fn is_game_over(&self) -> bool {
         match self {
-            Self::PlayerXMove => false,
-            Self::PlayerOMove => false,
-            Self::PlayerXWin(_) => true,
-            Self::PlayerOWin(_) => true,
-            Self::CatsGame => true,
+            Self::PlayerXMove | Self::PlayerOMove => false,
+            Self::PlayerXWin(_) | Self::PlayerOWin(_) | Self::CatsGame => true,
         }
     }
 }
