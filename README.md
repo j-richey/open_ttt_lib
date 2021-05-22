@@ -9,6 +9,14 @@
 
 Open source Rust library containing common Tic Tac Toe functionality.
 
+## Overview
+Tic Tac Toe is a game of strategy where two players, X and O, take turns placing their mark in a 3 x 3 gird.
+The first player to get three marks in a row, column, or diagonal wins the game. 
+The game can also end in a draw, known as a *cat's game*.
+
+This library contains logic to enforce the rules of Tic Tac Toe, manage the game's state,
+and provides artificial intelligence algorithms for single player games.
+
 
 ## Usage
 Add this to your `Cargo.toml`:
@@ -84,6 +92,10 @@ cargo bench
 ## Reporting Issues and Feature Requests
 Please report issues and feel free to request new features using this project's
 [GitHub issue tracker](https://github.com/j-richey/open_ttt_lib/issues).
+
+
+## Changes
+All notable changes are documented in the [CHANGELOG.md](https://github.com/j-richey/open_ttt_lib/blob/main/CHANGELOG.md).
 
 
 ## Contributing

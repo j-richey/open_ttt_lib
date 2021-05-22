@@ -22,7 +22,7 @@ This example also demonstrates how to create custom difficulties. Try modifying
 the `should_evaluate_node()` function and see how it compares to the builtin
 difficulties.
 
-Note: run this example runs significantly faster with the --release flag: e.g:
+Note: this example runs significantly faster with the --release flag: e.g:
 $ cargo run --release --example ai_difficulties
 "#;
 

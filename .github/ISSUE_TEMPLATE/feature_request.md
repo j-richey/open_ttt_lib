@@ -7,17 +7,18 @@ assignees: ''
 
 ---
 
-**User story**
-Please provide a user story that describes your feature using the template below: 
+**Description**
+What new feature or new functionality you are requesting?
 
-As a *user*
-I want *goal/desire* 
-so that *benefit*.
 
-Where:
-* *user* briefly describes how you are using the library, e.g. are you a game developer, academic, etc? 
-* *goal/desire* describes the feature or new functionality you are requesting.
-* *benefit* describes how the requested feature helps with your success.
+**Benefit**
+How do you benefit from the requested feature / how does it help with your success? 
+
+
+**Library usage**
+What type of application are you using the open_ttt_lib in?
+E.g. in a computer game, academic project, etc.
+
 
 **Additional context**
 Add any other context or notes about the feature request here.
