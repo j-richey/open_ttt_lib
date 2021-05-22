@@ -50,7 +50,7 @@
 //! }
 //! ```
 
-#![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.2.1")]
+#![doc(html_root_url = "https://docs.rs/open_ttt_lib/0.2.2")]
 #![forbid(unsafe_code)]
 
 pub mod ai;

@@ -23,7 +23,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-open_ttt_lib = "0.2.1"
+open_ttt_lib = "0.2.2"
 ```
 
 See the library's [documentation](https://docs.rs/open_ttt_lib/) for complete
